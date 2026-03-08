@@ -3,18 +3,9 @@ package dev.buecherregale.ebook_reader.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,18 +18,27 @@ import dev.buecherregale.ebook_reader.ui.navigation.Navigator
 import dev.buecherregale.ebook_reader.ui.navigation.Screen
 import ebuecherregal.composeapp.generated.resources.Res
 import ebuecherregal.composeapp.generated.resources.broken_image_48px
+import ebuecherregal.composeapp.generated.resources.more_vert_24px
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 @OptIn(ExperimentalUuidApi::class)
-fun LibraryCard(libraryService: LibraryService, library: Library) {
+fun LibraryCard(
+    library: Library,
+    onRename: (Library) -> Unit,
+    onDelete: (Library) -> Unit
+) {
+    val libraryService: LibraryService = koinInject()
     val imageState = rememberImageBitmap(
         key = library,
         bitmapLoader = libraryService::imageBytes
     )
+    val image by remember { mutableStateOf(libraryService.generateLibraryImage(library)) }
     val navigator: Navigator = koinInject()
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -51,8 +51,7 @@ fun LibraryCard(libraryService: LibraryService, library: Library) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
-                    .background(Color.LightGray),
-                contentAlignment = Alignment.Center
+                    .background(Color.LightGray)
             ) {
                 if (imageState.value != null) {
                     Image(
@@ -62,18 +61,52 @@ fun LibraryCard(libraryService: LibraryService, library: Library) {
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Icon(painterResource(Res.drawable.broken_image_48px), contentDescription = "missing image",
-                        Modifier.fillMaxSize())
+                    Icon(
+                        painterResource(Res.drawable.broken_image_48px), contentDescription = "missing image",
+                        Modifier.fillMaxSize()
+                    )
                 }
             }
 
-            Text(
-                text = library.name,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(8.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 8.dp, end = 8.dp, top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = library.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(painterResource(Res.drawable.more_vert_24px), contentDescription = "More options")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Rename") },
+                            onClick = {
+                                onRename(library)
+                                showMenu = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                onDelete(library)
+                                showMenu = false
+                            }
+                        )
+                    }
+                }
+            }
 
             Text(
                 text = "${library.bookIds.size} Books",

@@ -8,7 +8,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class LibraryViewModel(
     private val libraryService: LibraryService
 ) : ViewModel() {
@@ -34,9 +37,23 @@ class LibraryViewModel(
             loadLibraries()
         }
     }
+
+    fun renameLibrary(libraryId: Uuid, newName: String) {
+        viewModelScope.launch {
+            libraryService.renameLibrary(libraryId, newName)
+            loadLibraries()
+        }
+    }
+
+    fun deleteLibrary(libraryId: Uuid) {
+        viewModelScope.launch {
+            libraryService.deleteLibrary(libraryId)
+            loadLibraries()
+        }
+    }
 }
 
 data class LibraryUiState(
-    val libraries: List<Library> = emptyList(),
+    val libraries: MutableList<Library> = mutableListOf(),
     val isLoading: Boolean = false
 )

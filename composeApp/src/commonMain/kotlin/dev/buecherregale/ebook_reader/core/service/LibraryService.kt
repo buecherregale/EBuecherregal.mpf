@@ -1,5 +1,7 @@
 package dev.buecherregale.ebook_reader.core.service
 
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.decodeToImageBitmap
 import co.touchlab.kermit.Logger
 import dev.buecherregale.ebook_reader.core.domain.Library
 import dev.buecherregale.ebook_reader.core.repository.LibraryImageRepository
@@ -7,6 +9,8 @@ import dev.buecherregale.ebook_reader.core.repository.LibraryRepository
 import dev.buecherregale.ebook_reader.core.service.filesystem.AppDirectory
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileRef
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.invoke
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -15,9 +19,11 @@ import kotlin.uuid.Uuid
  */
 @OptIn(ExperimentalUuidApi::class)
 class LibraryService(
-    fileService: FileService,
+    private val fileService: FileService,
+    private val bookService: BookService,
     private val repository: LibraryRepository,
-    private val imageRepository: LibraryImageRepository) {
+    private val imageRepository: LibraryImageRepository
+) {
     private val libDir: FileRef = fileService.getAppDirectory(AppDirectory.STATE).resolve("libraries")
 
     /**
@@ -83,4 +89,54 @@ class LibraryService(
     suspend fun imageBytes(library: Library): ByteArray? {
         return imageRepository.load(library.id)
     }
+
+    /**
+     * Renames a library.
+     *
+     * @param libraryId the id of the library
+     * @param newName the new name
+     */
+    suspend fun renameLibrary(libraryId: Uuid, newName: String) {
+        val library = loadLibrary(libraryId)
+        repository.save(libraryId, library.copy(name = newName))
+    }
+
+    /**
+     * Deletes a library.
+     *
+     * @param libraryId the id of the library
+     */
+    suspend fun deleteLibrary(libraryId: Uuid) {
+        repository.delete(libraryId)
+        val imageFile = imageRepository.getFile(libraryId)
+        if (fileService.exists(imageFile)) {
+            imageRepository.delete(libraryId)
+        }
+    }
+
+    /**
+     * Generates a library image by merging 1 - 4 of the book covers.
+     *
+     * If the library contains no books, no cover can be created so `null` is returned.
+     * The image is automatically saved and reread.
+     *
+     * @param library The library
+     * @return the bytes of the image
+     */
+    suspend fun generateLibraryImage(library: Library): ImageBitmap? {
+        val coverBytes = library.bookIds
+            .mapNotNull { bookId -> bookService.readCoverBytes(bookId) }
+            .take(4)
+            .map { it.decodeToImageBitmap() }
+
+        if (coverBytes.isEmpty()) {
+            return null
+        }
+        return Dispatchers.Default {
+            val combined = combineBitmaps(coverBytes)
+            return@Default combined
+        }
+    }
+
+
 }
