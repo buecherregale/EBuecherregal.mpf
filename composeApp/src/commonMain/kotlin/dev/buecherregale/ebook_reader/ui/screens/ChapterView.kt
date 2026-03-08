@@ -2,12 +2,10 @@
 
 package dev.buecherregale.ebook_reader.ui.screens
 
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -26,7 +24,6 @@ import kotlin.uuid.Uuid
 fun ChapterView(
     bookId: Uuid,
     chapter: Chapter,
-    scrollState: ScrollState,
     selectedRange: TextRange? = null,
     selectedBlockId: String? = null,
     onSelected: (SelectedText, String) -> Unit = { _, _ -> },
@@ -41,7 +38,6 @@ fun ChapterView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragEnd = {

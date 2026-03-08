@@ -3,7 +3,6 @@
 package dev.buecherregale.ebook_reader.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +31,6 @@ fun ReaderScreen(
 ) {
     val navigator = koinInject<Navigator>()
     val uiState by viewModel.uiState.collectAsState()
-    val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
         viewModel.initState()
@@ -109,13 +107,11 @@ fun ReaderScreen(
 
                 LaunchedEffect(uiState.chapterIdx) {
                     popupState.dismiss()
-                    scrollState.scrollTo(0)
                 }
 
                 ChapterView(
                     bookId = uiState.book.id,
                     chapter = uiState.dom!!.chapter[uiState.chapterIdx],
-                    scrollState = scrollState,
                     selectedRange = popupState.selectedRange,
                     selectedBlockId = popupState.selectedBlockId,
                     onSelected = { selectedText, blockId ->
