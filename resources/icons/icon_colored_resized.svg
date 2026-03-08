@@ -1,0 +1,69 @@
+<svg width="128" height="128" viewBox="0 0 166 166" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(33, 33)">
+        <g transform="translate(32,28)">
+            <g transform="translate(2,2)">
+                <rect x="0" y="0" width="6" height="18" rx="1"
+                      fill="#9FF2E2" stroke="#005047" stroke-width="1.5"
+                />
+                <line x1="0" x2="6" y1="3" y2="3" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="12" y2="12" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="15" y2="15" stroke="#005047" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(9,3) rotate(-15)">
+                <rect x="0" y="0" width="6" height="18" rx="1"
+                      fill="#9FF2E2" stroke="#005047" stroke-width="1.5"
+                />
+                <line x1="1.5" x2="4.5" y1="3" y2="3" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="12" y2="12" stroke="#005047" stroke-width="1.5"/>
+                <line x1="1.5" x2="4.5" y1="15" y2="15" stroke="#005047" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(16.4,2.5) rotate(-15)">
+                <rect x="0" y="0" width="6" height="18" rx="1"
+                      fill="#9FF2E2" stroke="#005047" stroke-width="1.5"
+                />
+                <line x1="1.5" x2="4.5" y1="3" y2="3" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="12" y2="12" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="15" y2="15" stroke="#005047" stroke-width="1.5"/>
+            </g>
+        </g>
+
+        <g transform="translate(32,53)">
+            <g transform="translate(2,2)">
+                <rect x="0" y="0" width="6" height="18" rx="1"
+                      fill="#9FF2E2" stroke="#005047" stroke-width="1.5"
+                />
+                <circle cx="3" cy="14" r="1.5" fill="#9FF2E2" stroke="#005047" stroke-width="0.75"/>
+                <line x1="0" x2="6" y1="3" y2="3" stroke="#005047" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(9,2.5) rotate(-10)">
+                <rect x="0" y="0" width="6" height="18" rx="1"
+                      fill="#9FF2E2" stroke="#005047" stroke-width="1.5"
+                />
+                <line x1="0" x2="6" y1="3" y2="3" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="12" y2="12" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="15" y2="15" stroke="#005047" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(23,2) rotate(10)">
+                <rect x="0" y="0" width="6" height="18" rx="1"
+                      fill="#9FF2E2" stroke="#005047" stroke-width="1.5"
+                />
+                <line x1="1.5" x2="4.5" y1="3" y2="3" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="12" y2="12" stroke="#005047" stroke-width="1.5"/>
+                <line x1="1.5" x2="4.5" y1="15" y2="15" stroke="#005047" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(30,2)">
+                <rect x="0" y="0" width="6" height="18" rx="1"
+                      fill="#9FF2E2" stroke="#005047" stroke-width="1.5"
+                />
+                <line x1="0" x2="6" y1="3" y2="3" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="12" y2="12" stroke="#005047" stroke-width="1.5"/>
+                <line x1="0" x2="6" y1="15" y2="15" stroke="#005047" stroke-width="1.5"/>
+            </g>
+        </g>
+        <path d="M30 25 H70 M30 50 H60 M30 75 H70 M30 25 V75"
+              stroke="#83D5C6"
+              stroke-width="4"
+              stroke-linecap="round"
+              fill="none"/>
+    </g>
+</svg>
