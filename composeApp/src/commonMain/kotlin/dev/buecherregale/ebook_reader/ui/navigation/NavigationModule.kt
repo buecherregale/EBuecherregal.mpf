@@ -63,7 +63,6 @@ val navigationModule = module {
         }
         ReaderScreen(
             viewModel = viewModel,
-            onToggleMenu = { viewModel.toggleMenu() },
         )
     }
     navigation<Screen.Settings> {

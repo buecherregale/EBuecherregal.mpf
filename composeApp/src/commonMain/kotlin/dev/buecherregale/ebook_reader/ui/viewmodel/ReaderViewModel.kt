@@ -27,10 +27,12 @@ class ReaderViewModel(
     val uiState: StateFlow<ReaderUiState> = _uiState.asStateFlow()
 
     fun initState() {
-        _uiState.update { it.copy(
-            title = book.metadata.title,
-            progress = if(it.progress < 0) book.progress else it.progress,
-        ) }
+        _uiState.update {
+            it.copy(
+                title = book.metadata.title,
+                progress = if (it.progress < 0) book.progress else it.progress,
+            )
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val dom = bookService.open(book.id)
@@ -41,25 +43,15 @@ class ReaderViewModel(
 
             val language = book.metadata.language
             val dictionary = settingsManager.state.activeDictionaries[language]
-            _uiState.update { it.copy(
-                chapterIdx = cIdx,
-                isLoading = false,
-                dom = dom,
-                dictionary = dictionary
-            ) }
+            _uiState.update {
+                it.copy(
+                    chapterIdx = cIdx,
+                    isLoading = false,
+                    dom = dom,
+                    dictionary = dictionary
+                )
+            }
         }
-    }
-
-    fun showMenu() {
-        _uiState.update { it.copy(isMenuVisible = true) }
-    }
-
-    fun hideMenu() {
-        _uiState.update { it.copy(isMenuVisible = false) }
-    }
-
-    fun toggleMenu() {
-        _uiState.update { it.copy(isMenuVisible = !it.isMenuVisible) }
     }
 
     fun updateProgress() {
@@ -68,7 +60,7 @@ class ReaderViewModel(
             bookService.updateProgress(book, newProgress)
             _uiState.update { it.copy(progress = newProgress) }
         }
-     }
+    }
 
     fun nextChapter() {
         _uiState.update { state ->
@@ -97,7 +89,7 @@ class ReaderViewModel(
     fun navigateToLink(target: LinkTarget) {
         if (target is LinkTarget.Internal) {
             val dom = uiState.value.dom ?: return
-            
+
             if (target.chapterId != null) {
                 val chapterIndex = dom.chapter.indexOfFirst { it.id == target.chapterId }
                 if (chapterIndex != -1) {
@@ -113,7 +105,6 @@ class ReaderViewModel(
 data class ReaderUiState(
     val title: String = "",
     val progress: Double = -1.0, // do not use the book progress as book is immutable and the instance is not updated when progress changes
-    val isMenuVisible: Boolean = true,
     val isLoading: Boolean = false,
     val book: Book,
     var dom: DomDocument? = null,
