@@ -29,8 +29,8 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.uuid.ExperimentalUuidApi
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 @Composable
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 fun LibraryScreen(
     viewModel: LibraryViewModel = koinViewModel(),
 ) {

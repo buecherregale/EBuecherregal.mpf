@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package dev.buecherregale.ebook_reader.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -22,10 +20,9 @@ import ebuecherregal.composeapp.generated.resources.arrow_forward_24px
 import ebuecherregal.composeapp.generated.resources.settings_24px
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
-import kotlin.uuid.ExperimentalUuidApi
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun ReaderScreen(
     viewModel: ReaderViewModel,
 ) {
@@ -109,22 +106,6 @@ fun ReaderScreen(
                     popupState.dismiss()
                 }
 
-                ChapterView(
-                    bookId = uiState.book.id,
-                    chapter = uiState.dom!!.chapter[uiState.chapterIdx],
-                    selectedRange = popupState.selectedRange,
-                    selectedBlockId = popupState.selectedBlockId,
-                    onSelected = { selectedText, blockId ->
-                        popupState.show(
-                            selectedText,
-                            blockId,
-                            uiState.book.metadata.language
-                        )
-                    },
-                    onLinkClick = { target -> viewModel.navigateToLink(target) },
-                    onSwipeLeft = { viewModel.nextChapter() },
-                    onSwipeRight = { viewModel.previousChapter() },
-                )
                 uiState.dictionary?.let {
                     DictionaryPopup(state = popupState, dictionary = it)
                 }

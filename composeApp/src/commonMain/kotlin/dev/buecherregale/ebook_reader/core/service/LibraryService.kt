@@ -29,7 +29,7 @@ class LibraryService(
      * @param libraryId the id of the library
      * @param bookId the book to add
      */
-    suspend fun addBook(libraryId: Uuid, bookId: Uuid) {
+    suspend fun addBook(libraryId: Uuid, bookId: String) {
         repository.addBook(libraryId, bookId)
     }
 
@@ -62,7 +62,7 @@ class LibraryService(
      * @return the list of libraries (mutable)
      */
     suspend fun loadLibraries(): List<Library> {
-        Logger.i("loading libraries from '$libDir'")
+        Logger.i("loading libraries from '${libDir.path}'")
 
         val libraries = repository.loadAll()
 

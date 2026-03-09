@@ -1,4 +1,4 @@
-package dev.buecherregale.ebook_reader.core.dom.epub.xml
+package dev.buecherregale.ebook_reader.core.dom.epub.xml_structs
 
 import kotlinx.serialization.Serializable
 import nl.adaptivity.xmlutil.serialization.XmlElement
@@ -12,7 +12,7 @@ private object Ns {
 
 @Serializable
 @XmlSerialName("package", namespace = Ns.OPF)
-data class Package(
+internal data class Package(
     @XmlElement(true)
     @XmlSerialName("metadata")
     val metadata: Metadata,
@@ -24,7 +24,7 @@ data class Package(
 
 @Serializable
 @XmlSerialName("manifest")
-data class Manifest(
+internal data class Manifest(
     @XmlElement(true)
     @XmlSerialName("item")
     val items: List<Item>,
@@ -32,7 +32,7 @@ data class Manifest(
 
 @Serializable
 @XmlSerialName("spine")
-data class Spine(
+internal data class Spine(
     @XmlElement(false)
     @XmlSerialName("page-progression-direction")
     val pageProgressionDirection: String = "ltr",
@@ -50,7 +50,7 @@ data class Spine(
  */
 @Serializable
 @XmlSerialName("metadata")
-data class Metadata(
+internal data class Metadata(
     @XmlElement(true)
     @XmlSerialName("contributor", Ns.DC, "dc")
     val contributor: String?,
@@ -100,7 +100,7 @@ data class Metadata(
 
 @Serializable
 @XmlSerialName("creator", Ns.DC, "dc")
-data class Creator(
+internal data class Creator(
     @XmlValue(true)
     val name: String,
 
@@ -115,7 +115,7 @@ data class Creator(
 
 @Serializable
 @XmlSerialName("identifier", Ns.DC, "dc")
-data class Identifier(
+internal data class Identifier(
     @XmlValue(true)
     val value: String,
 
@@ -126,4 +126,3 @@ data class Identifier(
     @XmlSerialName("scheme", Ns.OPF, "opf")
     val scheme: String? = null
 )
-

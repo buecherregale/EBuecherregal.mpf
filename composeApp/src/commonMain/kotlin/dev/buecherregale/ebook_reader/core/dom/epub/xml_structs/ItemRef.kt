@@ -1,9 +1,10 @@
-package dev.buecherregale.ebook_reader.core.dom.epub.xml
+package dev.buecherregale.ebook_reader.core.dom.epub.xml_structs
 
 import kotlinx.serialization.Serializable
 import nl.adaptivity.xmlutil.serialization.XmlSerialName
 
 @Serializable
 @XmlSerialName("itemref")
-data class ItemRef(
-    val idref: String)
+internal data class ItemRef(
+    val idref: String
+)

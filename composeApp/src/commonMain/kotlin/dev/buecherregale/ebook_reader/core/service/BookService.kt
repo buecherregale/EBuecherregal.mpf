@@ -1,8 +1,8 @@
 package dev.buecherregale.ebook_reader.core.service
 
 import co.touchlab.kermit.Logger
-import dev.buecherregale.ebook_reader.core.dom.DomDocument
-import dev.buecherregale.ebook_reader.core.dom.ParserFactory
+import dev.buecherregale.ebook_reader.core.dom.BookParserRegistry
+import dev.buecherregale.ebook_reader.core.dom.Document
 import dev.buecherregale.ebook_reader.core.dom.ResourceRepository
 import dev.buecherregale.ebook_reader.core.domain.Book
 import dev.buecherregale.ebook_reader.core.repository.BookCoverRepository
@@ -20,7 +20,6 @@ import kotlin.uuid.Uuid
  * External api to interact with the books with.
  * Handles file storage, book import and opening a book from a library.
  */
-@OptIn(ExperimentalUuidApi::class)
 class BookService(
     private val fileService: FileService,
     private val jsonUtil: JsonUtil,
@@ -41,21 +40,30 @@ class BookService(
      *
      * @return the book instance with metadata
      */
+    @OptIn(ExperimentalUuidApi::class)
     suspend fun importBook(bookFile: FileRef): Book {
         Logger.i { "importing book from '$bookFile'" }
 
-        val bookId = Uuid.generateV4()
+        val bookId = Uuid.generateV4().toString()
 
-        val parser = ParserFactory.get(bookFile, fileService)
-        val domBook = parser.parse(bookId, bookFile, fileService, bookResourceRepository(bookId))
+        val parser = BookParserRegistry.applyDefault().get(bookFile, fileService)
+        val book = parser.parse(
+            file = bookFile,
+            fileService = fileService,
+            resourceRepository = bookResourceRepository(bookId),
+            targetId = bookId
+        )
 
-        repository.save(bookId, domBook.first)
-        fileRepository.save(bookId, jsonUtil.serialize(domBook.second).encodeToByteArray())
-        parser.getCoverBytes(bookFile, fileService)?.let { coverRepository.save(bookId, it) }
+        Logger.d { "successfully parsed ${book.second.id}" }
 
-        Logger.i("imported book '${domBook.first.metadata.title}' with id ${domBook.first.id}")
+        repository.save(bookId, book.first)
+        fileRepository.save(bookId, jsonUtil.serialize(book.second).encodeToByteArray())
 
-        return domBook.first
+        parser.parseCover(bookFile, fileService)?.let { coverRepository.save(bookId, it) }
+
+        Logger.i("imported book '${book.first.metadata.title}' with id ${book.first.id}")
+
+        return book.first
     }
 
     /**
@@ -67,7 +75,7 @@ class BookService(
      *
      * @return the deserialized DOM
      */
-    suspend fun open(bookId: Uuid) : DomDocument {
+    suspend fun open(bookId: String): Document {
         val bytes = fileRepository.load(bookId) ?: throw IllegalArgumentException("book $bookId not found")
         return jsonUtil.deserialize(bytes.decodeToString())
     }
@@ -87,13 +95,13 @@ class BookService(
      *
      * @return the repository managing the resources of a book
      */
-    fun bookResourceRepository(bookId: Uuid) : ResourceRepository {
+    fun bookResourceRepository(bookId: String): ResourceRepository {
         return ResourceRepository(
             FileRepository(
                 keyToFilename = { key -> "${key}.resource" },
                 storeInDir = fileService.getAppDirectory(AppDirectory.DATA)
                     .resolve("books")
-                    .resolve(bookId.toString())
+                    .resolve(bookId)
                     .resolve("resources"),
                 fileService = fileService
             )
@@ -106,7 +114,7 @@ class BookService(
      * @param bookId the id of the book
      * @return the book instance
      */
-    suspend fun readData(bookId: Uuid): Book {
+    suspend fun readData(bookId: String): Book {
         return repository.load(bookId) ?: throw IllegalArgumentException("book $bookId does not exist")
     }
 
@@ -147,12 +155,12 @@ class BookService(
 
     /**
      * Reads the byte content of the file storing the cover from [.getCoverFile].
-     * TODO: possibly give filetype (easy for epub via content-type). For that [dev.buecherregale.ebook_reader.core.dom.DocumentParser.getCoverBytes] needs to return the filetype
+     * TODO: possibly give filetype (easy for epub via content-type). For that `readCover()` needs to return the filetype
      *
      * @param bookId the id of the book
      * @return the bytes of the cover image
      */
-    suspend fun readCoverBytes(bookId: Uuid): ByteArray? {
+    suspend fun readCoverBytes(bookId: String): ByteArray? {
         return coverRepository.load(bookId)
     }
 }

@@ -1,121 +1,124 @@
 package dev.buecherregale.ebook_reader.core.dom
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
-const val DOM_SCHEMA_VERSION = 1
+/** Not an updated DOM, but a brand-new DOM. Better, nicer, cooler */
+const val CURRENT_DOM_VERSION = 1
 
-@Serializable
-data class DomDocument(
-    val schemaVersion: Int,
-    val chapter: List<Chapter>
-)
-
-
-@Serializable
-data class Chapter(
-    val id: String,
-    val title: String?,
-    val blocks: List<BlockNode>
-)
-
-interface DomMigration {
+interface Migration {
     val fromVersion: Int
     val toVersion: Int
-    fun migrate(document: DomDocument): DomDocument
+    fun migrate(document: Document)
 }
 
 @Serializable
-sealed interface BlockNode {
-    val id: String
-}
+data class Document(
+    override val id: String,
+    override val children: MutableList<Node> = mutableListOf(),
+    @Transient
+    override val originalLinkAnchor: String? = null,
+    val version: Int = CURRENT_DOM_VERSION,
+) : Branch
+
+@Serializable
+data class Division(
+    override val id: String,
+    override val children: MutableList<Node> = mutableListOf(),
+    @Transient
+    override val originalLinkAnchor: String? = null,
+) : Branch
 
 @Serializable
 data class Paragraph(
     override val id: String,
-    val inlines: List<InlineNode>
-) : BlockNode
+    override val children: MutableList<Node> = mutableListOf(),
+    @Transient
+    override val originalLinkAnchor: String? = null,
+) : Branch
 
+/**
+ * Heading level 1 to 6. Children are inline nodes so that formatted
+ * headings like `<h1><em>Title</em></h1>` are representable.
+ */
 @Serializable
 data class Heading(
     override val id: String,
+    override val children: MutableList<Node> = mutableListOf(),
+    @Transient
+    override val originalLinkAnchor: String? = null,
     val level: Int,
-    val inlines: List<InlineNode>
-) : BlockNode
+) : Branch
+
+/**
+ * Ordered or unordered list. Each direct child should be a [ListItem].
+ * Renamed from `List` to avoid clashing with kotlin.collections.List.
+ */
+@Serializable
+data class ListBlock(
+    override val id: String,
+    override val children: MutableList<Node> = mutableListOf(),
+    @Transient
+    override val originalLinkAnchor: String? = null,
+    val ordered: Boolean = false,
+) : Branch
+
+@Serializable
+data class ListItem(
+    override val id: String,
+    override val children: MutableList<Node> = mutableListOf(),
+    @Transient
+    override val originalLinkAnchor: String? = null,
+) : Branch
 
 @Serializable
 data class ImageBlock(
     override val id: String,
-    val imageRef: ImageRef,
-    val caption: List<InlineNode>? = null
-) : BlockNode
-
-@Serializable
-data class ImageRef(
-    val id: String,
-    val mimeType: String,
-    val resourceFileId: String,
-)
-
-@Serializable
-data class BlockQuote(
-    override val id: String,
-    val blocks: List<BlockNode>
-) : BlockNode
-
-@Serializable
-data class ListBlock(
-    override val id: String,
-    val ordered: Boolean,
-    val items: List<ListItem>
-) : BlockNode
-
-@Serializable
-data class ListItem(
-    val id: String,
-    val blocks: List<BlockNode>
-)
-
-@Serializable
-sealed interface InlineNode
+    @Transient
+    override val originalLinkAnchor: String? = null,
+    val image: Image,
+    /** Caption can contain inline formatting, so it's a list of nodes. */
+    val caption: MutableList<Node> = mutableListOf(),
+) : Leaf
 
 @Serializable
 data class Text(
-    val text: String
-) : InlineNode
+    override val id: String,
+    @Transient
+    override val originalLinkAnchor: String? = null,
+    val text: String,
+    val style: TextStyle = TextStyle.Default
+) : Leaf, Inline
 
-@Serializable
-enum class Emphasis {
-    BOLD,
-    ITALIC,
-}
-
-@Serializable
-data class Emphasized(
-    val emphasis: Set<Emphasis>,
-    val children: List<InlineNode>
-) : InlineNode
-
+/**
+ * A hyperlink. Children are inline nodes (formatted link text is valid).
+ */
 @Serializable
 data class Link(
-    val target: LinkTarget,
-    val children: List<InlineNode>
-) : InlineNode
+    override val id: String,
+    override val children: MutableList<Node> = mutableListOf(),
+    @Transient
+    override val originalLinkAnchor: String? = null,
+    var target: String,
+) : Branch, Inline
 
 @Serializable
-sealed interface LinkTarget {
-    @Serializable
-    data class External(val url: String) : LinkTarget
-    @Serializable
-    data class Internal(val nodeId: String, val chapterId: String? = null) : LinkTarget
-}
+data class Image(
+    override val id: String,
+    @Transient
+    override val originalLinkAnchor: String? = null,
+    var src: String,
+    val alt: String = "",
+) : Leaf
 
+/**
+ * Ruby annotation. Both base and annotation can have styled text runs.
+ */
 @Serializable
 data class Ruby(
-    val children: List<InlineNode>,
-    val ruby: String
-) : InlineNode
-
-@Serializable
-internal data class RubyAnnotation(
-    val text: String
-) : InlineNode
+    override val id: String,
+    @Transient
+    override val originalLinkAnchor: String? = null,
+    val baseText: MutableList<Text> = mutableListOf(),
+    val annotationText: MutableList<Text> = mutableListOf(),
+) : Leaf, Inline

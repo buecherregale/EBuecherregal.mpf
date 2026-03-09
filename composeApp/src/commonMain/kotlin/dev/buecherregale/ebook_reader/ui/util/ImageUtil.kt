@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package dev.buecherregale.ebook_reader.ui.util
 
 import androidx.compose.ui.geometry.Rect
@@ -13,7 +11,6 @@ import dev.buecherregale.ebook_reader.core.domain.Library
 import dev.buecherregale.ebook_reader.core.service.BookService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.invoke
-import kotlin.uuid.ExperimentalUuidApi
 
 /**
  * Convert an existing bitmap to a byte array with a platform dependent handling.

@@ -2,9 +2,10 @@ package dev.buecherregale.ebook_reader.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import dev.buecherregale.ebook_reader.core.config.SettingsManager
-import dev.buecherregale.ebook_reader.core.dom.DomDocument
-import dev.buecherregale.ebook_reader.core.dom.LinkTarget
+import dev.buecherregale.ebook_reader.core.dom.Document
+import dev.buecherregale.ebook_reader.core.dom.Link
 import dev.buecherregale.ebook_reader.core.domain.Book
 import dev.buecherregale.ebook_reader.core.domain.Dictionary
 import dev.buecherregale.ebook_reader.core.service.BookService
@@ -38,7 +39,7 @@ class ReaderViewModel(
             val dom = bookService.open(book.id)
             val cIdx =
                 if (_uiState.value.chapterIdx == 0 && book.progress != 0.0)
-                    (book.progress * dom.chapter.lastIndex).roundToInt()
+                    (book.progress * dom.children.lastIndex).roundToInt()
                 else _uiState.value.chapterIdx
 
             val language = book.metadata.language
@@ -55,7 +56,7 @@ class ReaderViewModel(
     }
 
     fun updateProgress() {
-        val newProgress = uiState.value.chapterIdx.toDouble() / uiState.value.dom!!.chapter.lastIndex
+        val newProgress = uiState.value.chapterIdx.toDouble() / uiState.value.dom!!.children.lastIndex
         viewModelScope.launch {
             bookService.updateProgress(book, newProgress)
             _uiState.update { it.copy(progress = newProgress) }
@@ -65,7 +66,7 @@ class ReaderViewModel(
     fun nextChapter() {
         _uiState.update { state ->
             state.dom?.let { dom ->
-                if (state.chapterIdx < dom.chapter.lastIndex) {
+                if (state.chapterIdx < dom.children.lastIndex) {
                     state.copy(
                         chapterIdx = state.chapterIdx + 1,
                     )
@@ -86,18 +87,13 @@ class ReaderViewModel(
         updateProgress()
     }
 
-    fun navigateToLink(target: LinkTarget) {
-        if (target is LinkTarget.Internal) {
+    fun navigateToLink(target: Link) {
+        if (target.target.startsWith("epub_link://")) {
             val dom = uiState.value.dom ?: return
-
-            if (target.chapterId != null) {
-                val chapterIndex = dom.chapter.indexOfFirst { it.id == target.chapterId }
-                if (chapterIndex != -1) {
-                    _uiState.update { it.copy(chapterIdx = chapterIndex) }
-                    updateProgress()
-                }
-            }
-            // TODO: scrolling to specific node within chapter
+            Logger.d { "TODO: internal links" }
+            // todo: path to node in dom: epub_link://node1_id/node2_id/node3_id
+        } else {
+            Logger.i { "external links are not supported yet" }
         }
     }
 }
@@ -107,7 +103,7 @@ data class ReaderUiState(
     val progress: Double = -1.0, // do not use the book progress as book is immutable and the instance is not updated when progress changes
     val isLoading: Boolean = false,
     val book: Book,
-    var dom: DomDocument? = null,
+    var dom: Document? = null,
     var chapterIdx: Int = 0,
     val dictionary: Dictionary? = null
 )

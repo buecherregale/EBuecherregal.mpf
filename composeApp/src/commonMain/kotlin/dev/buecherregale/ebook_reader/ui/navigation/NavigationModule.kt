@@ -57,7 +57,7 @@ val navigationModule = module {
     }
     navigation<Screen.Reader> { route ->
         val viewModel = koinViewModel<ReaderViewModel>(
-            key = route.book.id.toString()
+            key = route.book.id
         ) {
             parametersOf(route.book)
         }
