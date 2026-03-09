@@ -1,1 +1,0 @@
-package dev.buecherregale.ebook_reader.ui.components

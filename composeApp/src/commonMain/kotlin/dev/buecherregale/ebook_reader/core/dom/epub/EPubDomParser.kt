@@ -14,6 +14,7 @@ import dev.buecherregale.ebook_reader.core.language.normalizeLanguage
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileRef
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
 import dev.buecherregale.ebook_reader.core.service.filesystem.ZipFileRef
+import dev.buecherregale.ebook_reader.ui.util.UrlUtil
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -213,7 +214,7 @@ internal class ImagePostProcessor(
 
                         val bytes = entry.open().readByteArray()
                         resourceRepository.save(image.second.id, bytes)
-                        image.second.src = "epub_resource://${image.second.id}"
+                        image.second.src = UrlUtil.BOOK_RESOURCE_PROTOCOL + "://${image.second.id}"
                     }
                 }
             }.awaitAll()
@@ -292,7 +293,7 @@ internal object LinkPostProcessor : PostProcessor {
     }
 
     private fun pathToUrl(path: ArrayDeque<String>): String {
-        return "epub_link://" + path.joinToString("/")
+        return UrlUtil.BOOK_LINK_PROTOCOL + "://" + path.joinToString("/")
     }
 }
 

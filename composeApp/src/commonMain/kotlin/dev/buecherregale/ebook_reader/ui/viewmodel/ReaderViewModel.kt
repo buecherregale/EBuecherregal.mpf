@@ -9,6 +9,7 @@ import dev.buecherregale.ebook_reader.core.dom.Link
 import dev.buecherregale.ebook_reader.core.domain.Book
 import dev.buecherregale.ebook_reader.core.domain.Dictionary
 import dev.buecherregale.ebook_reader.core.service.BookService
+import dev.buecherregale.ebook_reader.ui.util.UrlUtil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -88,10 +89,10 @@ class ReaderViewModel(
     }
 
     fun navigateToLink(target: Link) {
-        if (target.target.startsWith("epub_link://")) {
+        if (target.target.startsWith(UrlUtil.BOOK_LINK_PROTOCOL)) {
             val dom = uiState.value.dom ?: return
             Logger.d { "TODO: internal links" }
-            // todo: path to node in dom: epub_link://node1_id/node2_id/node3_id
+            // todo: path to node in dom: book_link://node1_id/node2_id/node3_id
         } else {
             Logger.i { "external links are not supported yet" }
         }
