@@ -35,7 +35,6 @@ fun LibraryCard(
         key = library,
         bitmapLoader = libraryService::imageBytes
     )
-    val image by remember { mutableStateOf(libraryService.generateLibraryImage(library)) }
     val navigator: Navigator = koinInject()
     var showMenu by remember { mutableStateOf(false) }
 

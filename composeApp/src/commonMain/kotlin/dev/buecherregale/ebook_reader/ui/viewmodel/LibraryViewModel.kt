@@ -31,9 +31,9 @@ class LibraryViewModel(
         }
     }
 
-    fun createLibrary(name: String, imageBytes: ByteArray?) {
+    fun createLibrary(name: String) {
         viewModelScope.launch {
-            libraryService.createLibrary(name, imageBytes)
+            libraryService.createLibrary(name)
             loadLibraries()
         }
     }

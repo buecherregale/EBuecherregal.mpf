@@ -85,8 +85,8 @@ fun LibraryScreen(
     if (showCreateDialog) {
         CreateLibraryDialog(
             onDismiss = { showCreateDialog = false },
-            onConfirm = { name, image ->
-                viewModel.createLibrary(name, image?.bytes)
+            onConfirm = { name ->
+                viewModel.createLibrary(name)
                 showCreateDialog = false
             }
         )
