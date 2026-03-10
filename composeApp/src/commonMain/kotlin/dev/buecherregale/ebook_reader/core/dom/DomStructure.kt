@@ -11,7 +11,13 @@ interface Node {
     val id: String
     val originalLinkAnchor: String?
 
-    fun visit(visitor: (Node) -> Unit) {
+    /**
+     * Traverse the graph this Node is a part of.
+     * Calls [visitor] on every node.
+     *
+     * @see [Branch.traverse]
+     */
+    fun traverse(visitor: (Node) -> Unit) {
         visitor(this)
     }
 }
@@ -23,9 +29,16 @@ interface Leaf : Node
 interface Branch : Node {
     val children: MutableList<Node>
 
-    override fun visit(visitor: (Node) -> Unit) {
+    /**
+     * Traverse the graph this Node is a part of.
+     *
+     * Calls [visitor] on every node.
+     *
+     * @see [Node.traverse]
+     */
+    override fun traverse(visitor: (Node) -> Unit) {
         visitor(this)
-        children.forEach { it.visit(visitor) }
+        children.forEach { it.traverse(visitor) }
     }
 }
 

@@ -197,7 +197,7 @@ internal class ImagePostProcessor(
             val chapter = child as? Chapter
                 ?: throw EPubSyntaxException("non chapter child of epub document: ${child.id}, anchor: ${child.originalLinkAnchor}")
             chapter.children.forEach {
-                it.visit { node ->
+                it.traverse { node ->
                     if (node is Image) images.add(chapter to node)
                 }
             }
@@ -225,7 +225,7 @@ internal class ImagePostProcessor(
 internal object LinkPostProcessor : PostProcessor {
     override suspend fun process(document: Document) {
         val links: MutableSet<Link> = mutableSetOf()
-        document.visit { node ->
+        document.traverse { node ->
             if (node is Link)
                 links.add(node)
         }
@@ -270,7 +270,7 @@ internal object LinkPostProcessor : PostProcessor {
     private fun findChapterToLink(document: Document, targetAnchor: String): Chapter? {
         var found: Chapter? = null
         document.children.forEach { chapter ->
-            chapter.visit { node ->
+            chapter.traverse { node ->
                 if (node.originalLinkAnchor == targetAnchor)
                     found = chapter as Chapter
             }
