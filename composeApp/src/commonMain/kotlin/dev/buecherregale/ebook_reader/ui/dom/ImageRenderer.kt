@@ -8,13 +8,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.sp
+import dev.buecherregale.ebook_reader.core.dom.DomUrl
 import dev.buecherregale.ebook_reader.core.dom.Image
 import dev.buecherregale.ebook_reader.core.dom.ImageBlock
 import dev.buecherregale.ebook_reader.core.dom.Text
 import dev.buecherregale.ebook_reader.core.domain.Book
 import dev.buecherregale.ebook_reader.core.service.BookService
 import dev.buecherregale.ebook_reader.ui.components.rememberImageBitmap
-import dev.buecherregale.ebook_reader.ui.util.UrlUtil
 import org.koin.compose.koinInject
 
 /**
@@ -32,8 +32,9 @@ fun DomImage(
     bookService: BookService = koinInject()
 ) {
     val bitmap by rememberImageBitmap(image.src) {
-        if (UrlUtil.getUrlProtocol(image.src) == UrlUtil.BOOK_RESOURCE_PROTOCOL)
-            bookService.bookResourceRepository(book.id).load(UrlUtil.getUrlPath(image.src))
+        val url = DomUrl.parse(image.src)
+        if (url != null && url is DomUrl.Resource)
+            bookService.bookResourceRepository(book.id).load(url.path.toString())
         else
             null
     }

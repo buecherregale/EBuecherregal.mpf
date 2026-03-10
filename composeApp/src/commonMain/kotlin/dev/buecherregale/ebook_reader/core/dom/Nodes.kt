@@ -21,6 +21,28 @@ data class Document(
     val version: Int = CURRENT_DOM_VERSION,
 ) : Branch
 
+/**
+ * A Chapter is just a simple branching node.
+ * This class is adapted to EPubs, keeping some of the original information.
+ *
+ * A Chapter should lead to a new Page displayed.
+ *
+ * @param id                    the new id for the node
+ * @param children              the child nodes
+ * @param originalZipPath       the path to the chapters xhtml in the zip
+ * @param originalLinkAnchor    identifier for a link anchor (targeted by things like `<a>`) = XML id
+ */
+@Serializable
+data class Chapter(
+    override val id: String,
+    override val children: MutableList<Node> = mutableListOf(),
+    @Transient
+    override val originalLinkAnchor: String? = null,
+    @Transient
+    val originalZipPath: String = "",
+) : Branch
+
+
 @Serializable
 data class Division(
     override val id: String,

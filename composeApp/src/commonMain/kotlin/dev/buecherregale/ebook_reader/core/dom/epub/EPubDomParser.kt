@@ -14,7 +14,6 @@ import dev.buecherregale.ebook_reader.core.language.normalizeLanguage
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileRef
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
 import dev.buecherregale.ebook_reader.core.service.filesystem.ZipFileRef
-import dev.buecherregale.ebook_reader.ui.util.UrlUtil
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -52,7 +51,7 @@ object EPubDomParser : BookParser {
             if (entry.open()
                     .readByteArray()
                     .decodeToString()
-                    .trim() == EPubConstants.CONTENT_TYPE
+                    .trim() != EPubConstants.CONTENT_TYPE
             ) {
                 Logger.i { "cannot parse epub: content-type is invalid" }
                 return false
@@ -72,7 +71,7 @@ object EPubDomParser : BookParser {
      *
      * The resulting document only has [Chapter] as children.
      *
-     * @see [EPub]
+     * @see [Document]
      * @see [Chapter]
      */
     override suspend fun parse(
@@ -94,7 +93,7 @@ object EPubDomParser : BookParser {
             }
             .map { it as Node }
             .toMutableList()
-        val document = EPub(
+        val document = Document(
             id = targetId,
             children = chapters
         )
@@ -214,7 +213,7 @@ internal class ImagePostProcessor(
 
                         val bytes = entry.open().readByteArray()
                         resourceRepository.save(image.second.id, bytes)
-                        image.second.src = UrlUtil.BOOK_RESOURCE_PROTOCOL + "://${image.second.id}"
+                        image.second.src = DomUrl.Resource(DomPath(listOf(image.second.id))).toString()
                     }
                 }
             }.awaitAll()
@@ -293,7 +292,7 @@ internal object LinkPostProcessor : PostProcessor {
     }
 
     private fun pathToUrl(path: ArrayDeque<String>): String {
-        return UrlUtil.BOOK_LINK_PROTOCOL + "://" + path.joinToString("/")
+        return DomUrl.Link(DomPath(path.toList())).toString()
     }
 }
 

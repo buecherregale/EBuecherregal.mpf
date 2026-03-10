@@ -4,11 +4,9 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import dev.buecherregale.ebook_reader.ui.screens.LibraryDetailScreen
 import dev.buecherregale.ebook_reader.ui.screens.LibraryScreen
-import dev.buecherregale.ebook_reader.ui.screens.ReaderScreen
 import dev.buecherregale.ebook_reader.ui.screens.SettingsScreen
 import dev.buecherregale.ebook_reader.ui.viewmodel.LibraryDetailViewModel
 import dev.buecherregale.ebook_reader.ui.viewmodel.LibraryViewModel
-import dev.buecherregale.ebook_reader.ui.viewmodel.ReaderViewModel
 import dev.buecherregale.ebook_reader.ui.viewmodel.SettingsViewModel
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -39,7 +37,6 @@ val navigationModule = module {
 
     viewModelOf(::LibraryViewModel)
     viewModel { params -> LibraryDetailViewModel(library = params.get(), get(), get()) }
-    viewModel { params -> ReaderViewModel(book = params.get(), get(), get()) }
     viewModelOf(::SettingsViewModel)
 
     navigation<Screen.LibraryOverview> { _ ->
@@ -56,14 +53,7 @@ val navigationModule = module {
         )
     }
     navigation<Screen.Reader> { route ->
-        val viewModel = koinViewModel<ReaderViewModel>(
-            key = route.book.id
-        ) {
-            parametersOf(route.book)
-        }
-        ReaderScreen(
-            viewModel = viewModel,
-        )
+
     }
     navigation<Screen.Settings> {
         SettingsScreen(viewModel = koinViewModel())

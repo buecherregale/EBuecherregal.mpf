@@ -1,5 +1,7 @@
 package dev.buecherregale.ebook_reader.core.dom
 
+import kotlinx.serialization.Serializable
+
 /**
  * Basic Node with a unique id
  * For later processing, the link anchor from the original document is preserved.
@@ -7,7 +9,8 @@ package dev.buecherregale.ebook_reader.core.dom
  * For XML this could be the `id` attribute.
  * For Markdown this could be a heading id `(#heading-ids)`
  */
-interface Node {
+@Serializable
+sealed interface Node {
     val id: String
     val originalLinkAnchor: String?
 
@@ -23,10 +26,12 @@ interface Node {
 }
 
 /** A node with no children (text, image, …). */
-interface Leaf : Node
+@Serializable
+sealed interface Leaf : Node
 
 /** A node that owns child nodes. */
-interface Branch : Node {
+@Serializable
+sealed interface Branch : Node {
     val children: MutableList<Node>
 
     /**
@@ -46,4 +51,5 @@ interface Branch : Node {
  * Marker for nodes that flow inline inside a paragraph
  * (e.g. Text, Link, Ruby) as opposed to block-level nodes.
  */
-interface Inline : Node
+@Serializable
+sealed interface Inline : Node
