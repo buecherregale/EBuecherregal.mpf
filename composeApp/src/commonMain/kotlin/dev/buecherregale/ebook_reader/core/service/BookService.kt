@@ -76,7 +76,9 @@ class BookService(
      * @return the deserialized DOM
      */
     suspend fun open(bookId: String): Document {
-        val bytes = fileRepository.load(bookId) ?: throw IllegalArgumentException("book $bookId not found")
+        Logger.i { "opening book with id: $bookId" }
+        val bytes = fileRepository.load(bookId)
+            ?: throw IllegalArgumentException("book $bookId not found")
         return jsonUtil.deserialize(bytes.decodeToString())
     }
 

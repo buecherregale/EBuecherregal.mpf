@@ -34,16 +34,11 @@ class SettingsManager(
         val json = fileService.read(configFile())
         settings = jsonUtil.deserialize(json)
         _state = buildState()
-        Logger.i("loaded application settings: $json")
+        Logger.i("loaded application settings:\n$json")
     }
 
     /**
-     * Checks if the config file exists. If not cre{
-     *         val json = fileService.read(configFile())
-     *         settings = jsonUtil.deserialize(json)
-     *         _state = buildState()
-     *         Logger.i("loaded application settings: $settings")
-     *     }ates BUT DOES NOT SAVE a blank config and state.
+     * Checks if the config file exists. If not creates **BUT DOES NOT SAVE** a blank config and state.
      */
     suspend fun loadOrCreate() {
         if (!fileService.exists(configFile())) {
@@ -117,7 +112,7 @@ class SettingsManager(
         _state.activeDictionaries.remove(language)
         settings.activeDictionaryIds.remove(language)
     }
-    
+
     fun setFontSize(size: Float) {
         _state.setFontSize(size)
         settings.fontSize = size

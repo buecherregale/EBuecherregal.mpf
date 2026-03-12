@@ -28,11 +28,12 @@ interface DomUrl {
         const val LINK_PROTOCOL = "dom_link"
 
         fun parse(url: String): DomUrl? {
-            when (url.substringBefore("://")) {
-                RESOURCE_PROTOCOL -> Link(DomPath(url.split("/")))
-                LINK_PROTOCOL -> Resource(DomPath(url.split("/")))
+            val protocol = url.substringBefore("://")
+            return when (protocol) {
+                RESOURCE_PROTOCOL -> Resource(DomPath(url.substringAfter("://").split("/")))
+                LINK_PROTOCOL -> Link(DomPath(url.substringAfter("://").split("/")))
+                else -> null
             }
-            return null
         }
     }
 }

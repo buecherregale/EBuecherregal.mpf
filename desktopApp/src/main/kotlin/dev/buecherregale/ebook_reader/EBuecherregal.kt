@@ -24,7 +24,7 @@ fun main() = application {
     }
 }
 
-private class Slf4JLogWriter: LogWriter() {
+private class Slf4JLogWriter : LogWriter() {
     override fun log(
         severity: Severity,
         message: String,
@@ -32,7 +32,7 @@ private class Slf4JLogWriter: LogWriter() {
         throwable: Throwable?
     ) {
         val logger = LoggerFactory.getLogger(tag)
-        when(severity) {
+        when (severity) {
             Severity.Verbose -> logger.trace(message, throwable)
             Severity.Debug -> logger.debug(message, throwable)
             Severity.Info -> logger.info(message, throwable)

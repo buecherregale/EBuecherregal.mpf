@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.sp
+import co.touchlab.kermit.Logger
 import dev.buecherregale.ebook_reader.core.dom.DomUrl
 import dev.buecherregale.ebook_reader.core.dom.Image
 import dev.buecherregale.ebook_reader.core.dom.ImageBlock
@@ -35,8 +36,10 @@ fun DomImage(
         val url = DomUrl.parse(image.src)
         if (url != null && url is DomUrl.Resource)
             bookService.bookResourceRepository(book.id).load(url.path.toString())
-        else
+        else {
+            Logger.w { "could not obtain image bitmap for url '$url'" }
             null
+        }
     }
     bitmap?.let { bitmap ->
         androidx.compose.foundation.Image(

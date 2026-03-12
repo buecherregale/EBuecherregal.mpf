@@ -32,6 +32,7 @@ fun DomNode(
 ) {
     when (node) {
         is Document -> DomDocument(book, node, config, modifier)
+        is Chapter -> DomChapter(book, node, config, modifier)
         is Division -> DomDivision(book, node, config, modifier)
         is Paragraph -> DomParagraph(book, node, config, modifier)
         is Heading -> DomHeading(node, config, modifier)
@@ -42,6 +43,5 @@ fun DomNode(
         is Link -> DomLink(node, config, modifier)
         is Ruby -> DomRuby(node, config, modifier)
         is Text -> DomText(node, config, modifier)
-        else -> Unit
     }
 }

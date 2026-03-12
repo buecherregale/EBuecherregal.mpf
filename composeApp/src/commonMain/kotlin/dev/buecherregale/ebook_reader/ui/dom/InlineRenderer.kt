@@ -1,7 +1,7 @@
 package dev.buecherregale.ebook_reader.ui.dom
 
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,7 +19,7 @@ import androidx.compose.ui.text.withStyle
 import dev.buecherregale.ebook_reader.core.dom.*
 
 /**
- * Renders a [Text] node as [BasicText] applying the modifier.
+ * Renders a [Text] node as [Text] applying the modifier.
  *
  * TextStyling is based on [Text.style] and [RenderingConfig].
  */
@@ -29,7 +29,7 @@ fun DomText(
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier
 ) {
-    BasicText(
+    Text(
         text = buildAnnotatedString {
             withStyle(text.style.toSpanStyle(config)) { append(text.text) }
         },
@@ -43,7 +43,24 @@ fun DomText(
 }
 
 /**
- * Renders a [Link] node.
+ * Renders a [Link] node.@Composable
+ * fun DomText(
+ *     text: Text,
+ *     config: RenderingConfig = RenderingConfig.Default,
+ *     modifier: Modifier = Modifier
+ * ) {
+ *     BasicText(
+ *         text = buildAnnotatedString {
+ *             withStyle(text.style.toSpanStyle(config)) { append(text.text) }
+ *         },
+ *         style = androidx.compose.ui.text.TextStyle(
+ *             fontSize = config.baseTextSize,
+ *             fontFamily = config.bodyFontFamily,
+ *             lineHeight = config.baseTextSize * config.lineHeightScale.toDouble(),
+ *         ),
+ *         modifier = modifier
+ *     )
+ * }
  *
  * @see [InlineContentRenderer]
  */
@@ -89,7 +106,7 @@ internal fun InlineContentRenderer(
         nodes.forEach { appendInlineNode(it, config) }
     }
 
-    BasicText(
+    Text(
         text = annotated,
         style = androidx.compose.ui.text.TextStyle(
             fontSize = config.baseTextSize,

@@ -1,7 +1,7 @@
 package dev.buecherregale.ebook_reader.ui.dom
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -13,7 +13,7 @@ import dev.buecherregale.ebook_reader.core.domain.Book
  * Renderer for a [Document] node.
  * Renders the document children as [Column], applying the [modifier].
  *
- * Children are spaced with the height of [RenderingConfig.paragraphSpacing].
+ * Spaced with the height of [RenderingConfig.paragraphSpacing] if empty.
  */
 @Composable
 fun DomDocument(
@@ -23,9 +23,10 @@ fun DomDocument(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
+        if (document.children.isEmpty())
+            Box(modifier = Modifier.height(config.paragraphSpacing))
         document.children.forEach {
             DomNode(book = book, node = it, config)
-            Spacer(modifier = Modifier.height(config.paragraphSpacing))
         }
     }
 }
@@ -34,7 +35,7 @@ fun DomDocument(
  * Renderer for a [Division] node.
  * Renders the children as [Column], applying the [modifier].
  *
- * Children are spaced with the height of [RenderingConfig.paragraphSpacing].
+ * Spaced with the height of [RenderingConfig.paragraphSpacing] if empty.
  */
 @Composable
 fun DomDivision(
@@ -44,9 +45,32 @@ fun DomDivision(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
+        if (division.children.isEmpty())
+            Box(modifier = Modifier.height(config.paragraphSpacing))
         division.children.forEach { child ->
             DomNode(book = book, node = child, config = config)
-            Spacer(modifier = Modifier.height(config.paragraphSpacing))
+        }
+    }
+}
+
+/**
+ * Renderer for a [Chapter] node.
+ * Renders the children as [Column], applying the [modifier].
+ *
+ * Spaced with the height of [RenderingConfig.paragraphSpacing] if empty.
+ */
+@Composable
+fun DomChapter(
+    book: Book,
+    chapter: Chapter,
+    config: RenderingConfig = RenderingConfig.Default,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        if (chapter.children.isEmpty())
+            Box(modifier = Modifier.height(config.paragraphSpacing))
+        chapter.children.forEach { child ->
+            DomNode(book = book, node = child, config = config)
         }
     }
 }
@@ -55,7 +79,7 @@ fun DomDivision(
  * Renderer for a [Paragraph] node.
  * Renders the children as [Column], applying the [modifier].
  *
- * Children are spaced with the height of [RenderingConfig.paragraphSpacing].
+ * Spaced with the height of [RenderingConfig.paragraphSpacing] if empty.
  */
 @Composable
 fun DomParagraph(
@@ -70,6 +94,8 @@ fun DomParagraph(
         if (inlineNodes.isNotEmpty()) {
             InlineContentRenderer(nodes = inlineNodes, config = config)
         }
+        if (blockNodes.isEmpty())
+            Box(modifier = Modifier.height(config.paragraphSpacing))
         blockNodes.forEach { child ->
             DomNode(book = book, node = child, config = config)
         }
