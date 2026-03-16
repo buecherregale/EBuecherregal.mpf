@@ -11,14 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.buecherregale.ebook_reader.core.config.SettingsManager
-import dev.buecherregale.ebook_reader.core.dom.Branch
-import dev.buecherregale.ebook_reader.core.dom.Document
-import dev.buecherregale.ebook_reader.core.dom.Leaf
-import dev.buecherregale.ebook_reader.core.dom.Node
+import dev.buecherregale.ebook_reader.core.dom.*
 import dev.buecherregale.ebook_reader.core.domain.Book
 import dev.buecherregale.ebook_reader.ui.dom.*
 import dev.buecherregale.ebook_reader.ui.navigation.Navigator
@@ -157,6 +156,7 @@ fun PaginatedContent(
     onTotalPagesChanged: (Int) -> Unit,
 ) {
     val contentIndex = remember(dom) { dom.buildContentIndex() }
+    val scope = rememberCoroutineScope()
 
     var viewAnchorLeafId by remember(dom) {
         mutableStateOf(contentIndex.pathAtFraction(initialProgress).peek())
@@ -174,6 +174,18 @@ fun PaginatedContent(
 
     var needsRestore by remember(dom, pageWidthPx) { mutableStateOf(true) }
     var pagesReady by remember(dom, pageWidthPx) { mutableStateOf(false) }
+
+    fun navigateToDomPath(path: DomPath) {
+        val leafId = contentIndex.firstLeafIdUnder(path) ?: return // link does not start with document but with chapter
+        val targetChildIndex = dom.childIndexContaining(leafId)
+
+        windowStart = maxOf(0, targetChildIndex - WINDOW_BEHIND)
+        windowEnd = minOf(dom.children.lastIndex, targetChildIndex + WINDOW_AHEAD)
+
+        viewAnchorLeafId = leafId
+        needsRestore = true
+        pagesReady = false
+    }
 
     SubcomposeLayout(modifier = Modifier.fillMaxSize()) { constraints ->
         val measureConstraints = Constraints(
@@ -250,13 +262,19 @@ fun PaginatedContent(
                     }
                 }
 
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
-                ) { pageIndex ->
-                    Column(modifier = Modifier.fillMaxSize().clipToBounds()) {
-                        currentPages[pageIndex].roots.forEach { node ->
-                            DomNode(book = book, node = node, config = config)
+                ProvideDomUriHandler(
+                    onDomLinkClicked = { path ->
+                        scope.launch { navigateToDomPath(path) }
+                    }
+                ) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                    ) { pageIndex ->
+                        Column(modifier = Modifier.fillMaxSize().clipToBounds()) {
+                            currentPages[pageIndex].roots.forEach { node ->
+                                DomNode(book = book, node = node, config = config)
+                            }
                         }
                     }
                 }
@@ -267,6 +285,27 @@ fun PaginatedContent(
             pagerPlaceable.placeRelative(0, 0)
         }
     }
+}
+
+@Composable
+private fun ProvideDomUriHandler(
+    onDomLinkClicked: (DomPath) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val fallback = LocalUriHandler.current
+    val handler = remember(fallback, onDomLinkClicked) {
+        object : UriHandler {
+            override fun openUri(uri: String) {
+                val parsed = DomUrl.parse(uri)
+                if (parsed is DomUrl.Link) {
+                    onDomLinkClicked(parsed.path)
+                } else {
+                    fallback.openUri(uri)
+                }
+            }
+        }
+    }
+    CompositionLocalProvider(LocalUriHandler provides handler, content = content)
 }
 
 private fun Node.containsLeafId(leafId: String): Boolean = when (this) {

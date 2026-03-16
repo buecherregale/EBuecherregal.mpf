@@ -3,7 +3,6 @@ package dev.buecherregale.ebook_reader.core.dom
 class DomPath(
     private val componentIds: ArrayDeque<String> = ArrayDeque()
 ) {
-    constructor(vararg componentIds: String) : this(ArrayDeque(componentIds.toList()))
     constructor(componentIds: Collection<String>) : this(ArrayDeque(componentIds.toList()))
 
     fun push(nodeId: String) = componentIds.addLast(nodeId)

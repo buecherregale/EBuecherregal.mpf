@@ -192,7 +192,7 @@ internal fun XmlReader.parseChildrenInto(
             }
 
             EventType.TEXT, EventType.CDSECT -> {
-                val text = text.trim()
+                val text = text
                 if (text.isNotEmpty()) {
                     target.add(
                         Text(

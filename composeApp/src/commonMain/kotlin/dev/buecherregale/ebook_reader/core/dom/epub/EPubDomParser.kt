@@ -247,6 +247,7 @@ internal object LinkPostProcessor : PostProcessor {
      */
     private fun findPathToLink(document: Document, link: Link): ArrayDeque<String>? {
         val path = ArrayDeque<String>()
+        path.addFirst(document.id)
         Regex("^(?<chapter>[^#]*)(#(?<anchor>.+))?$").find(link.target)?.let { matchResult ->
             if (matchResult.groups["chapter"] == null && matchResult.groups["anchor"] == null) // both null means no match
                 return null

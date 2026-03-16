@@ -38,7 +38,7 @@ data class RenderingConfig(
     val bodyFontFamily: FontFamily? = null,
     val codeFontFamily: FontFamily = FontFamily.Monospace,
     val headingFontFamily: FontFamily? = bodyFontFamily,
-    val linkColor: Color? = null,
+    val linkColor: Color = Color.Blue,
     val rubyAnnotationScale: Float = 0.8f,
 ) {
 

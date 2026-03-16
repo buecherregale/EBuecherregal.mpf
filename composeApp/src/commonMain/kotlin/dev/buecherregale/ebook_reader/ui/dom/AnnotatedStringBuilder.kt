@@ -1,6 +1,5 @@
 package dev.buecherregale.ebook_reader.ui.dom
 
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextDecoration
@@ -29,7 +28,7 @@ internal fun AnnotatedString.Builder.appendTextNode(node: Text, config: Renderin
 }
 
 internal fun AnnotatedString.Builder.appendLinkNode(node: Link, config: RenderingConfig) {
-    val linkColor = config.linkColor ?: Color.Unspecified
+    val linkColor = config.linkColor
     pushStringAnnotation(tag = LINK_TAG, annotation = node.target)
     withStyle(
         SpanStyle(

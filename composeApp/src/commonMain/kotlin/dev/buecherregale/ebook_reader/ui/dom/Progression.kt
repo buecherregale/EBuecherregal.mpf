@@ -19,12 +19,6 @@ class ContentIndex internal constructor(
         entry.path.peek() to (entry.cumulativeWeightBefore / totalWeight).coerceIn(0.0, 1.0)
     }
 
-    fun fractionAt(path: DomPath): Double {
-        if (totalWeight == 0.0) return 0.0
-        val entry = entries.firstOrNull { it.path == path } ?: return 0.0
-        return (entry.cumulativeWeightBefore / totalWeight).coerceIn(0.0, 1.0)
-    }
-
     /** Returns the progress fraction for the leaf with the given [leafId]. */
     fun fractionForLeafId(leafId: String): Double? = fractionByLeafId[leafId]
 
@@ -35,6 +29,19 @@ class ContentIndex internal constructor(
             .lastOrNull { it.cumulativeWeightBefore <= target }
             ?.path
             ?: entries.first().path
+    }
+
+    /**
+     * Returns the ID of the first leaf whose path starts with [prefix],
+     * or `null` if no such leaf exists.
+     *
+     * Used to navigate to a [DomPath] that points at a [Branch].
+     */
+    fun firstLeafIdUnder(prefix: DomPath): String? {
+        val prefixList = prefix.toList()
+        return entries.firstOrNull { entry ->
+            entry.path.toList().let { it.size >= prefixList.size && it.take(prefixList.size) == prefixList }
+        }?.path?.peek()
     }
 }
 
