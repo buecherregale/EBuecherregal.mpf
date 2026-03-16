@@ -1,7 +1,9 @@
 package dev.buecherregale.ebook_reader.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,21 +30,40 @@ import ebuecherregal.composeapp.generated.resources.Res
 import ebuecherregal.composeapp.generated.resources.arrow_back_24px
 import ebuecherregal.composeapp.generated.resources.arrow_forward_24px
 import ebuecherregal.composeapp.generated.resources.settings_24px
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun BookScreen(
     viewModel: BookViewModel = koinViewModel(),
     navigator: Navigator = koinInject(),
     settingsManager: SettingsManager = koinInject()
 ) {
     val state by viewModel.uiState.collectAsState()
-    var currentPage by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
     var totalPages by remember { mutableIntStateOf(0) }
+    val pagerState = rememberPagerState(pageCount = { totalPages })
+
+    LaunchedEffect(totalPages, state.book.progress) {
+        if (totalPages > 0) {
+            val targetPage = (state.book.progress * (totalPages - 1)).roundToInt().coerceIn(0, totalPages - 1)
+            pagerState.scrollToPage(targetPage)
+        }
+    }
+
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }
+            .collect { page ->
+                if (totalPages > 0) {
+                    val progress = (page.toDouble() / (totalPages - 1).coerceAtLeast(1)).coerceIn(0.0, 1.0)
+                    viewModel.updateProgress(progress)
+                }
+            }
+    }
 
     val config = remember(settingsManager.state.fontSize.value) {
         RenderingConfig.Default.copy(
@@ -84,7 +105,11 @@ fun BookScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { if (currentPage > 0) currentPage-- }) {
+                    IconButton(onClick = {
+                        if (pagerState.currentPage > 0) scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                        }
+                    }) {
                         Icon(
                             painter = painterResource(Res.drawable.arrow_back_24px),
                             contentDescription = "Previous page"
@@ -96,18 +121,21 @@ fun BookScreen(
                             .padding(horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        val progress = if (totalPages > 0) (currentPage + 1).toFloat() / totalPages else 0f
                         Text(
-                            text = "${(progress * 100).roundToInt()}%",
+                            text = "${(state.progress * 100).roundToInt()}%",
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         LinearProgressIndicator(
-                            progress = { progress },
+                            progress = { state.progress.toFloat() },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-                    IconButton(onClick = { if (currentPage < totalPages - 1) currentPage++ }) {
+                    IconButton(onClick = {
+                        if (pagerState.currentPage < totalPages - 1) scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        }
+                    }) {
                         Icon(
                             painter = painterResource(Res.drawable.arrow_forward_24px),
                             contentDescription = "Next page"
@@ -140,15 +168,17 @@ fun BookScreen(
                     config = config,
                     pageWidthPx = pageWidthPx,
                     pageHeightPx = pageHeightPx,
-                    currentPage = currentPage,
-                    onPageChanged = { currentPage = it },
-                    onTotalPagesChanged = { totalPages = it }
+                    pagerState = pagerState,
+                    onTotalPagesChanged = {
+                        totalPages = it
+                    }
                 )
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PaginatedContent(
     book: Book,
@@ -156,9 +186,8 @@ fun PaginatedContent(
     config: RenderingConfig,
     pageWidthPx: Int,
     pageHeightPx: Int,
-    currentPage: Int,
-    onPageChanged: (Int) -> Unit,
-    onTotalPagesChanged: (Int) -> Unit,
+    pagerState: PagerState,
+    onTotalPagesChanged: (Int) -> Unit
 ) {
     val nodeHeights: SnapshotStateMap<String, Int> =
         remember(dom, pageWidthPx) { mutableStateMapOf() }
@@ -209,17 +238,6 @@ fun PaginatedContent(
             } else {
                 LaunchedEffect(pages.size) {
                     onTotalPagesChanged(pages.size)
-                }
-                val pagerState = rememberPagerState(pageCount = { pages.size })
-
-                LaunchedEffect(pagerState.currentPage) {
-                    onPageChanged(pagerState.currentPage)
-                }
-
-                LaunchedEffect(currentPage) {
-                    if (pagerState.currentPage != currentPage) {
-                        pagerState.animateScrollToPage(currentPage)
-                    }
                 }
 
                 HorizontalPager(

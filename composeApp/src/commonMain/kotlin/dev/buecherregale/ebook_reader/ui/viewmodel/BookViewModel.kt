@@ -14,7 +14,7 @@ class BookViewModel(
     private val bookService: BookService
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(BookUiState(book))
+    private val _uiState = MutableStateFlow(BookUiState(book, progress = book.progress))
     val uiState = _uiState.asStateFlow()
 
     init {
@@ -28,10 +28,18 @@ class BookViewModel(
             _uiState.value = _uiState.value.copy(dom = dom, isLoading = false)
         }
     }
+
+    fun updateProgress(progress: Double) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(progress = progress, book = book.copy(progress = progress))
+            bookService.updateProgress(book, progress)
+        }
+    }
 }
 
 data class BookUiState(
     val book: Book,
     var dom: Document? = null,
-    var isLoading: Boolean = false
+    var isLoading: Boolean = false,
+    var progress: Double = 0.0,
 )

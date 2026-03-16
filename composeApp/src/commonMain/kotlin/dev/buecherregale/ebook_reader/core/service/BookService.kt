@@ -131,14 +131,16 @@ class BookService(
      * @return the updated book
      */
     suspend fun updateProgress(book: Book, newProgress: Double): Book {
-        val v2 = Book(
+        val updated = Book(
             book.id,
             newProgress,
             book.metadata,
         )
 
-        saveBookData(v2)
-        return v2
+        Logger.i { "updating progress for book ${book.id} to ${updated.progress}" }
+
+        saveBookData(updated)
+        return updated
     }
 
     /**
