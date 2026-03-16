@@ -7,7 +7,6 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -18,11 +17,10 @@ import androidx.compose.ui.unit.sp
 import dev.buecherregale.ebook_reader.core.config.SettingsManager
 import dev.buecherregale.ebook_reader.core.dom.Branch
 import dev.buecherregale.ebook_reader.core.dom.Document
+import dev.buecherregale.ebook_reader.core.dom.Leaf
+import dev.buecherregale.ebook_reader.core.dom.Node
 import dev.buecherregale.ebook_reader.core.domain.Book
-import dev.buecherregale.ebook_reader.ui.dom.DomNode
-import dev.buecherregale.ebook_reader.ui.dom.RenderingConfig
-import dev.buecherregale.ebook_reader.ui.dom.cloneWithChildren
-import dev.buecherregale.ebook_reader.ui.dom.paginate
+import dev.buecherregale.ebook_reader.ui.dom.*
 import dev.buecherregale.ebook_reader.ui.navigation.Navigator
 import dev.buecherregale.ebook_reader.ui.navigation.Screen
 import dev.buecherregale.ebook_reader.ui.viewmodel.BookViewModel
@@ -36,6 +34,11 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 
+private const val WINDOW_BEHIND = 2  // top-level children to load behind the anchor
+private const val WINDOW_AHEAD = 4  // top-level children to load ahead of the anchor
+private const val EXPAND_STEP = 2  // children added per expansion event
+private const val PAGE_EDGE_THRESHOLD = 3  // pages from edge that triggers expansion
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun BookScreen(
@@ -48,38 +51,14 @@ fun BookScreen(
     var totalPages by remember { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(pageCount = { totalPages })
 
-    LaunchedEffect(totalPages, state.book.progress) {
-        if (totalPages > 0) {
-            val targetPage = (state.book.progress * (totalPages - 1)).roundToInt().coerceIn(0, totalPages - 1)
-            pagerState.scrollToPage(targetPage)
-        }
-    }
-
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }
-            .collect { page ->
-                if (totalPages > 0) {
-                    val progress = (page.toDouble() / (totalPages - 1).coerceAtLeast(1)).coerceIn(0.0, 1.0)
-                    viewModel.updateProgress(progress)
-                }
-            }
-    }
-
     val config = remember(settingsManager.state.fontSize.value) {
-        RenderingConfig.Default.copy(
-            baseTextSize = settingsManager.state.fontSize.value.sp,
-        )
+        RenderingConfig.Default.copy(baseTextSize = settingsManager.state.fontSize.value.sp)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = state.book.metadata.title,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                },
+                title = { Text(state.book.metadata.title, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {
                         Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = "Back")
@@ -110,15 +89,10 @@ fun BookScreen(
                             pagerState.animateScrollToPage(pagerState.currentPage - 1)
                         }
                     }) {
-                        Icon(
-                            painter = painterResource(Res.drawable.arrow_back_24px),
-                            contentDescription = "Previous page"
-                        )
+                        Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = "Previous page")
                     }
                     Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 16.dp),
+                        modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
@@ -136,20 +110,14 @@ fun BookScreen(
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
                         }
                     }) {
-                        Icon(
-                            painter = painterResource(Res.drawable.arrow_forward_24px),
-                            contentDescription = "Next page"
-                        )
+                        Icon(painterResource(Res.drawable.arrow_forward_24px), contentDescription = "Next page")
                     }
                 }
             }
         }
     ) { innerPadding ->
         if (state.isLoading || state.dom == null) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
@@ -159,27 +127,24 @@ fun BookScreen(
                     .padding(horizontal = 16.dp)
                     .fillMaxSize()
             ) {
-                val pageWidthPx = constraints.maxWidth
-                val pageHeightPx = constraints.maxHeight
-
                 PaginatedContent(
                     book = state.book,
                     dom = state.dom!!,
                     config = config,
-                    pageWidthPx = pageWidthPx,
-                    pageHeightPx = pageHeightPx,
+                    pageWidthPx = constraints.maxWidth,
+                    pageHeightPx = constraints.maxHeight,
                     pagerState = pagerState,
-                    onTotalPagesChanged = {
-                        totalPages = it
-                    }
+                    initialProgress = state.book.progress,
+                    onProgressChanged = { viewModel.updateProgress(it) },
+                    onTotalPagesChanged = { totalPages = it },
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 fun PaginatedContent(
     book: Book,
     dom: Document,
@@ -187,69 +152,110 @@ fun PaginatedContent(
     pageWidthPx: Int,
     pageHeightPx: Int,
     pagerState: PagerState,
-    onTotalPagesChanged: (Int) -> Unit
+    initialProgress: Double,
+    onProgressChanged: (Double) -> Unit,
+    onTotalPagesChanged: (Int) -> Unit,
 ) {
-    val nodeHeights: SnapshotStateMap<String, Int> =
-        remember(dom, pageWidthPx) { mutableStateMapOf() }
-    val branchHeights: SnapshotStateMap<String, Int> =
-        remember(dom, pageWidthPx) { mutableStateMapOf() }
+    val contentIndex = remember(dom) { dom.buildContentIndex() }
 
-    // measure
+    var viewAnchorLeafId by remember(dom) {
+        mutableStateOf(contentIndex.pathAtFraction(initialProgress).peek())
+    }
+
+    var windowStart by remember(dom, pageWidthPx) {
+        mutableIntStateOf(maxOf(0, dom.childIndexContaining(viewAnchorLeafId) - WINDOW_BEHIND))
+    }
+    var windowEnd by remember(dom, pageWidthPx) {
+        mutableIntStateOf(minOf(dom.children.lastIndex, dom.childIndexContaining(viewAnchorLeafId) + WINDOW_AHEAD))
+    }
+
+    val nodeHeights = remember(dom, pageWidthPx) { mutableStateMapOf<String, Int>() }
+    val branchHeights = remember(dom, pageWidthPx) { mutableStateMapOf<String, Int>() }
+
+    var needsRestore by remember(dom, pageWidthPx) { mutableStateOf(true) }
+    var pagesReady by remember(dom, pageWidthPx) { mutableStateOf(false) }
+
     SubcomposeLayout(modifier = Modifier.fillMaxSize()) { constraints ->
         val measureConstraints = Constraints(
-            minWidth = 0,
-            maxWidth = pageWidthPx,
-            minHeight = 0,
-            maxHeight = Constraints.Infinity,
+            minWidth = 0, maxWidth = pageWidthPx,
+            minHeight = 0, maxHeight = Constraints.Infinity,
         )
-        dom.traverse { node ->
-            if (node.id !in nodeHeights) {
-                nodeHeights[node.id] = subcompose("measure_${node.id}") {
-                    DomNode(
-                        book = book,
-                        node = node,
-                        config = config,
-                    )
-                }.firstOrNull()
-                    ?.measure(measureConstraints)
-                    ?.height ?: 0
-                if (node is Branch) {
-                    val clone = node.cloneWithChildren(mutableListOf())
-                    branchHeights[node.id] = subcompose("measure_branch_${node.id}") {
-                        DomNode(
-                            book = book,
-                            node = clone,
-                            config = config,
-                        )
-                    }.firstOrNull()
-                        ?.measure(measureConstraints)
-                        ?.height ?: 0
+
+        for (i in windowStart..windowEnd) {
+            dom.children[i].traverse { node ->
+                if (node.id !in nodeHeights) {
+                    nodeHeights[node.id] = subcompose("measure_${node.id}") {
+                        DomNode(book = book, node = node, config = config)
+                    }.firstOrNull()?.measure(measureConstraints)?.height ?: 0
+
+                    if (node is Branch) {
+                        branchHeights[node.id] = subcompose("measure_branch_${node.id}") {
+                            DomNode(
+                                book = book,
+                                node = node.cloneWithChildren(mutableListOf()),
+                                config = config,
+                            )
+                        }.firstOrNull()?.measure(measureConstraints)?.height ?: 0
+                    }
                 }
             }
         }
-        // paginate
-        val pages = dom.paginate(nodeHeights, branchHeights, pageHeightPx)
-        // render
+
+        val currentPages = (dom
+            .cloneWithChildren(dom.children.subList(windowStart, windowEnd + 1).toMutableList()) as Document)
+            .paginate(nodeHeights, branchHeights, pageHeightPx)
+
         val pagerPlaceable = subcompose("pager") {
-            if (pages.isEmpty()) {
+            val latestPages by rememberUpdatedState(currentPages)
+            val latestAnchor by rememberUpdatedState(viewAnchorLeafId)
+
+            if (currentPages.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
-                LaunchedEffect(pages.size) {
-                    onTotalPagesChanged(pages.size)
+                SideEffect {
+                    if (!pagesReady) pagesReady = true
+                }
+
+                LaunchedEffect(currentPages.size) {
+                    onTotalPagesChanged(currentPages.size)
+                }
+
+                LaunchedEffect(needsRestore, pagesReady) {
+                    if (needsRestore && pagesReady) {
+                        val target = latestPages.pageIndexForLeafId(latestAnchor).takeIf { it >= 0 } ?: 0
+                        pagerState.scrollToPage(target)
+                        needsRestore = false
+                    }
+                }
+
+                LaunchedEffect(pagerState) {
+                    snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+                        latestPages.getOrNull(settledPage)?.firstLeafId()?.let { leafId ->
+                            viewAnchorLeafId = leafId
+                            contentIndex.fractionForLeafId(leafId)?.let { onProgressChanged(it) }
+                        }
+
+                        if (settledPage >= latestPages.size - PAGE_EDGE_THRESHOLD
+                            && windowEnd < dom.children.lastIndex
+                        ) {
+                            windowEnd = minOf(dom.children.lastIndex, windowEnd + EXPAND_STEP)
+                        }
+
+                        if (settledPage <= PAGE_EDGE_THRESHOLD && windowStart > 0) {
+                            windowStart = maxOf(0, windowStart - EXPAND_STEP)
+                            needsRestore = true
+                        }
+                    }
                 }
 
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
                 ) { pageIndex ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clipToBounds()
-                    ) {
-                        pages[pageIndex].roots.forEach { node ->
+                    Column(modifier = Modifier.fillMaxSize().clipToBounds()) {
+                        currentPages[pageIndex].roots.forEach { node ->
                             DomNode(book = book, node = node, config = config)
                         }
                     }
@@ -262,3 +268,11 @@ fun PaginatedContent(
         }
     }
 }
+
+private fun Node.containsLeafId(leafId: String): Boolean = when (this) {
+    is Leaf -> id == leafId
+    is Branch -> children.any { it.containsLeafId(leafId) }
+}
+
+private fun Document.childIndexContaining(leafId: String): Int =
+    children.indexOfFirst { it.containsLeafId(leafId) }.coerceAtLeast(0)

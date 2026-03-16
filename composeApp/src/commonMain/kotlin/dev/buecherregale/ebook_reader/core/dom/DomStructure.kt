@@ -45,6 +45,7 @@ sealed interface Branch : Node {
         visitor(this)
         children.forEach { it.traverse(visitor) }
     }
+
 }
 
 /**

@@ -59,7 +59,7 @@ private class PagesBuilder(
  *
  * @receiver            The document to divide into pages.
  * @param nodeHeights   Mapping [Node.id] to the height the node takes up. For [Branch] this includes the branch itself, but also its children.
- *                      **Contract:** `nodeHeights[branch.id] = branchHeights[branch.id] + branch.children.map { nodeHeights[it.id] }.sum()`
+ *                      **Contract:** `nodeHeights[ branch.id ] = branchHeights[ branch.id ] + branch.children.map { nodeHeights[ it.id ] }.sum()`
  * @param branchHeights Mapping [Branch.id] to the height the branch itself takes up, as if it had no children.
  * @param pageHeightPx  The height of a page in pixels.
  * @return              A list of pages.

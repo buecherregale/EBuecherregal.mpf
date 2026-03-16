@@ -1,9 +1,30 @@
 package dev.buecherregale.ebook_reader.core.dom
 
-data class DomPath(
-    val nodeIds: List<String>
+class DomPath(
+    private val componentIds: ArrayDeque<String> = ArrayDeque()
 ) {
-    override fun toString(): String = nodeIds.joinToString("/")
+    constructor(vararg componentIds: String) : this(ArrayDeque(componentIds.toList()))
+    constructor(componentIds: Collection<String>) : this(ArrayDeque(componentIds.toList()))
+
+    fun push(nodeId: String) = componentIds.addLast(nodeId)
+    fun pop(): String = componentIds.removeLast()
+    fun peek(): String = componentIds.last()
+
+    fun toList(): List<String> = componentIds.toList()
+
+    override fun toString(): String = componentIds.joinToString("/")
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as DomPath
+
+        return componentIds == other.componentIds
+    }
+
+    override fun hashCode(): Int {
+        return componentIds.hashCode()
+    }
 }
 
 interface DomUrl {
