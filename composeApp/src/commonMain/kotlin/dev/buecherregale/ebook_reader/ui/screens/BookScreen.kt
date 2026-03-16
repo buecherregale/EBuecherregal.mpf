@@ -16,9 +16,12 @@ import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import co.touchlab.kermit.Logger
 import dev.buecherregale.ebook_reader.core.config.SettingsManager
 import dev.buecherregale.ebook_reader.core.dom.*
 import dev.buecherregale.ebook_reader.core.domain.Book
+import dev.buecherregale.ebook_reader.ui.components.DictionaryPopup
+import dev.buecherregale.ebook_reader.ui.components.rememberPopupState
 import dev.buecherregale.ebook_reader.ui.dom.*
 import dev.buecherregale.ebook_reader.ui.navigation.Navigator
 import dev.buecherregale.ebook_reader.ui.navigation.Screen
@@ -126,6 +129,8 @@ fun BookScreen(
                     .padding(horizontal = 16.dp)
                     .fillMaxSize()
             ) {
+                val dictionaryPopupState = rememberPopupState()
+
                 PaginatedContent(
                     book = state.book,
                     dom = state.dom!!,
@@ -136,7 +141,17 @@ fun BookScreen(
                     initialProgress = state.book.progress,
                     onProgressChanged = { viewModel.updateProgress(it) },
                     onTotalPagesChanged = { totalPages = it },
+                    onTextSelectedText = {
+                        Logger.i { "selected word: ${it.word}" }
+                        dictionaryPopupState.show(it)
+                    },
                 )
+                state.dictionary?.let {
+                    DictionaryPopup(
+                        state = dictionaryPopupState,
+                        dictionary = it,
+                    )
+                }
             }
         }
     }
@@ -152,8 +167,9 @@ fun PaginatedContent(
     pageHeightPx: Int,
     pagerState: PagerState,
     initialProgress: Double,
-    onProgressChanged: (Double) -> Unit,
-    onTotalPagesChanged: (Int) -> Unit,
+    onProgressChanged: (Double) -> Unit = {},
+    onTotalPagesChanged: (Int) -> Unit = {},
+    onTextSelectedText: (SelectedText) -> Unit = {},
 ) {
     val contentIndex = remember(dom) { dom.buildContentIndex() }
     val scope = rememberCoroutineScope()
@@ -169,11 +185,11 @@ fun PaginatedContent(
         mutableIntStateOf(minOf(dom.children.lastIndex, dom.childIndexContaining(viewAnchorLeafId) + WINDOW_AHEAD))
     }
 
-    val nodeHeights = remember(dom, pageWidthPx) { mutableStateMapOf<String, Int>() }
-    val branchHeights = remember(dom, pageWidthPx) { mutableStateMapOf<String, Int>() }
+    val nodeHeights = remember(dom, pageWidthPx, config.baseTextSize) { mutableStateMapOf<String, Int>() }
+    val branchHeights = remember(dom, pageWidthPx, config.baseTextSize) { mutableStateMapOf<String, Int>() }
 
-    var needsRestore by remember(dom, pageWidthPx) { mutableStateOf(true) }
-    var pagesReady by remember(dom, pageWidthPx) { mutableStateOf(false) }
+    var needsRestore by remember(dom, pageWidthPx, config.baseTextSize) { mutableStateOf(true) }
+    var pagesReady by remember(dom, pageWidthPx, config.baseTextSize) { mutableStateOf(false) }
 
     fun navigateToDomPath(path: DomPath) {
         val leafId = contentIndex.firstLeafIdUnder(path) ?: return // link does not start with document but with chapter
@@ -273,7 +289,12 @@ fun PaginatedContent(
                     ) { pageIndex ->
                         Column(modifier = Modifier.fillMaxSize().clipToBounds()) {
                             currentPages[pageIndex].roots.forEach { node ->
-                                DomNode(book = book, node = node, config = config)
+                                DomNode(
+                                    book = book,
+                                    node = node,
+                                    config = config,
+                                    onTextSelected = onTextSelectedText,
+                                )
                             }
                         }
                     }

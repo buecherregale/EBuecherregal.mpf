@@ -60,6 +60,7 @@ fun DomImageBlock(
     block: ImageBlock,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
+    onTextSelected: ((SelectedText) -> Unit) = {},
 ) {
     Column(modifier = modifier) {
         DomImage(book = book, image = block.image, config = config)
@@ -70,6 +71,7 @@ fun DomImageBlock(
             InlineContentRenderer(
                 nodes = block.caption.filterIsInstance<Text>(),
                 config = captionConfig,
+                onTextSelected = onTextSelected,
             )
         }
     }

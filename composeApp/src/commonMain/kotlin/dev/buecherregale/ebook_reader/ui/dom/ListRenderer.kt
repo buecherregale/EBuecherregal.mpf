@@ -1,7 +1,7 @@
 package dev.buecherregale.ebook_reader.ui.dom
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import dev.buecherregale.ebook_reader.core.dom.Inline
@@ -23,6 +23,7 @@ fun DomListBlock(
     list: ListBlock,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
+    onTextSelected: ((SelectedText) -> Unit) = {},
 ) {
     Column(modifier = modifier) {
         list.children.forEachIndexed { index, child ->
@@ -33,10 +34,11 @@ fun DomListBlock(
                     item = child,
                     config = config,
                     ordinalLabel = label,
+                    onTextSelected = onTextSelected,
                 )
 
                 else -> {
-                    DomNode(book = book, node = child, config = config)
+                    DomNode(book = book, node = child, config = config, onTextSelected = onTextSelected)
                 }
             }
             Spacer(modifier = Modifier.height(config.listItemSpacing))
@@ -57,10 +59,11 @@ fun DomListItem(
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
     ordinalLabel: String?,
+    onTextSelected: ((SelectedText) -> Unit) = {},
 ) {
     Row(modifier = modifier.padding(start = config.listIndent)) {
         if (ordinalLabel != null) {
-            BasicText(
+            Text(
                 text = ordinalLabel,
                 style = config.baseAsTextStyle(),
             )
@@ -70,10 +73,10 @@ fun DomListItem(
         val (inlineNodes, blockNodes) = item.children.partition { it is Inline }
         Column(modifier = Modifier.weight(1f)) {
             if (inlineNodes.isNotEmpty()) {
-                InlineContentRenderer(nodes = inlineNodes, config = config)
+                InlineContentRenderer(nodes = inlineNodes, config = config, onTextSelected = onTextSelected)
             }
             blockNodes.forEach { child ->
-                DomNode(book = book, node = child, config = config)
+                DomNode(book = book, node = child, config = config, onTextSelected = onTextSelected)
             }
         }
     }

@@ -29,19 +29,20 @@ fun DomNode(
     node: Node,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
+    onTextSelected: ((SelectedText) -> Unit) = {},
 ) {
     when (node) {
-        is Document -> DomDocument(book, node, config, modifier)
-        is Chapter -> DomChapter(book, node, config, modifier)
-        is Division -> DomDivision(book, node, config, modifier)
-        is Paragraph -> DomParagraph(book, node, config, modifier)
-        is Heading -> DomHeading(node, config, modifier)
-        is ListBlock -> DomListBlock(book, node, config, modifier)
-        is ListItem -> DomListItem(book, node, config, modifier, ordinalLabel = null)
-        is ImageBlock -> DomImageBlock(book, node, config, modifier)
+        is Document -> DomDocument(book, node, config, modifier, onTextSelected)
+        is Chapter -> DomChapter(book, node, config, modifier, onTextSelected)
+        is Division -> DomDivision(book, node, config, modifier, onTextSelected)
+        is Paragraph -> DomParagraph(book, node, config, modifier, onTextSelected)
+        is Heading -> DomHeading(node, config, modifier, onTextSelected)
+        is ListBlock -> DomListBlock(book, node, config, modifier, onTextSelected)
+        is ListItem -> DomListItem(book, node, config, modifier, ordinalLabel = null, onTextSelected)
+        is ImageBlock -> DomImageBlock(book, node, config, modifier, onTextSelected)
         is Image -> DomImage(book, node, config, modifier)
-        is Link -> DomLink(node, config, modifier)
-        is Ruby -> DomRuby(node, config, modifier)
-        is Text -> DomText(node, config, modifier)
+        is Link -> DomLink(node, config, modifier, onTextSelected = onTextSelected)
+        is Ruby -> DomRuby(node, config, modifier, onTextSelected = onTextSelected)
+        is Text -> DomText(node, config, modifier, onTextSelected = onTextSelected)
     }
 }

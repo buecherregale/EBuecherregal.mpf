@@ -21,12 +21,13 @@ fun DomDocument(
     document: Document,
     config: RenderingConfig,
     modifier: Modifier = Modifier,
+    onTextSelected: ((SelectedText) -> Unit) = {},
 ) {
     Column(modifier = modifier) {
         if (document.children.isEmpty())
             Box(modifier = Modifier.height(config.paragraphSpacing))
         document.children.forEach {
-            DomNode(book = book, node = it, config)
+            DomNode(book = book, node = it, config = config, onTextSelected = onTextSelected)
         }
     }
 }
@@ -43,12 +44,13 @@ fun DomDivision(
     division: Division,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
+    onTextSelected: ((SelectedText) -> Unit) = {},
 ) {
     Column(modifier = modifier) {
         if (division.children.isEmpty())
             Box(modifier = Modifier.height(config.paragraphSpacing))
         division.children.forEach { child ->
-            DomNode(book = book, node = child, config = config)
+            DomNode(book = book, node = child, config = config, onTextSelected = onTextSelected)
         }
     }
 }
@@ -65,12 +67,13 @@ fun DomChapter(
     chapter: Chapter,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
+    onTextSelected: ((SelectedText) -> Unit) = {},
 ) {
     Column(modifier = modifier) {
         if (chapter.children.isEmpty())
             Box(modifier = Modifier.height(config.paragraphSpacing))
         chapter.children.forEach { child ->
-            DomNode(book = book, node = child, config = config)
+            DomNode(book = book, node = child, config = config, onTextSelected = onTextSelected)
         }
     }
 }
@@ -87,17 +90,18 @@ fun DomParagraph(
     paragraph: Paragraph,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
+    onTextSelected: ((SelectedText) -> Unit) = {},
 ) {
     val (inlineNodes, blockNodes) = paragraph.children.partition { it is Inline }
 
     Column(modifier = modifier) {
         if (inlineNodes.isNotEmpty()) {
-            InlineContentRenderer(nodes = inlineNodes, config = config)
+            InlineContentRenderer(nodes = inlineNodes, config = config, onTextSelected = onTextSelected)
         }
         if (blockNodes.isEmpty())
             Box(modifier = Modifier.height(config.paragraphSpacing))
         blockNodes.forEach { child ->
-            DomNode(book = book, node = child, config = config)
+            DomNode(book = book, node = child, config = config, onTextSelected = onTextSelected)
         }
     }
 }
@@ -114,6 +118,7 @@ fun DomHeading(
     heading: Heading,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
+    onTextSelected: ((SelectedText) -> Unit) = {},
 ) {
     val headingConfig = config.copy(
         baseTextSize = config.headingSize(heading.level).fontSize,
@@ -121,6 +126,6 @@ fun DomHeading(
     )
 
     Column(modifier = modifier.padding(bottom = config.paragraphSpacing)) {
-        InlineContentRenderer(nodes = heading.children, config = headingConfig)
+        InlineContentRenderer(nodes = heading.children, config = headingConfig, onTextSelected = onTextSelected)
     }
 }
