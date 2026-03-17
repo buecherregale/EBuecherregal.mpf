@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import co.touchlab.kermit.Logger
 import dev.buecherregale.ebook_reader.core.config.SettingsManager
 import dev.buecherregale.ebook_reader.core.dom.*
 import dev.buecherregale.ebook_reader.core.domain.Book
@@ -142,7 +141,6 @@ fun BookScreen(
                     onProgressChanged = { viewModel.updateProgress(it) },
                     onTotalPagesChanged = { totalPages = it },
                     onTextSelected = { selection: SelectedText, callback: HighlightDismisser ->
-                        Logger.i { "selected word: ${selection.word}" }
                         dictionaryPopupState.show(selection, callback)
                     },
                 )

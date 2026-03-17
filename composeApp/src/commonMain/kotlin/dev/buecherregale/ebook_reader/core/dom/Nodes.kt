@@ -142,5 +142,15 @@ data class Ruby(
     @Transient
     override val originalLinkAnchor: String? = null,
     val baseText: MutableList<Text> = mutableListOf(),
-    val annotationText: MutableList<Text> = mutableListOf(),
+    val annotationText: MutableList<RubyAnnotation> = mutableListOf(),
+) : Leaf, Inline
+
+@Serializable
+data class RubyAnnotation(
+    override val id: String,
+    @Transient
+    override val originalLinkAnchor: String? = null,
+    val annotationText: Text,
+    val parenthesisOpen: Text? = null,
+    val parenthesisClosed: Text? = null,
 ) : Leaf, Inline

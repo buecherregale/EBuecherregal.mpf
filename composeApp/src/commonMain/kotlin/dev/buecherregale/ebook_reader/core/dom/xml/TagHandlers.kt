@@ -1,7 +1,6 @@
 package dev.buecherregale.ebook_reader.core.dom.xml
 
 import dev.buecherregale.ebook_reader.core.dom.*
-import nl.adaptivity.xmlutil.EventType
 
 internal class ParagraphHandler : TagHandler {
     override val supportedTags = setOf("p")
@@ -213,82 +212,87 @@ internal class ListItemHandler : TagHandler {
 }
 
 internal class RubyHandler : TagHandler {
-    override val supportedTags = setOf("ruby")
+
+    override val supportedTags: Set<String> = setOf("ruby")
 
     override fun handle(context: ParseContext): List<Node> {
-        val baseTexts = mutableListOf<Text>()
-        val annotationTexts = mutableListOf<Text>()
-
-        var pendingText = ""
-
         val reader = context.reader
-        var depth = 1
 
-        while (reader.hasNext() && depth > 0) {
-            when (reader.next()) {
-                EventType.START_ELEMENT -> {
-                    depth++
-                    when (reader.localName.lowercase()) {
-                        "rt" -> {
-                            if (pendingText.isNotBlank()) {
-                                baseTexts.add(
-                                    Text(
-                                        id = nextId(),
-                                        text = pendingText.trim(),
-                                        originalLinkAnchor = context.reader.attributes()["id"]
-                                    )
-                                )
-                                pendingText = ""
-                            }
-                            val ann = buildString {
-                                while (reader.hasNext()) {
-                                    when (reader.next()) {
-                                        EventType.TEXT, EventType.CDSECT -> append(reader.text)
-                                        EventType.END_ELEMENT -> break
-                                        else -> {}
-                                    }
-                                }
-                            }
-                            depth--
-                            if (ann.isNotBlank()) {
-                                annotationTexts.add(
-                                    Text(
-                                        id = nextId(),
-                                        text = ann.trim(),
-                                        originalLinkAnchor = context.reader.attributes()["id"]
-                                    )
-                                )
-                            }
-                        }
+        val ruby = Ruby(
+            id = nextId()
+        )
 
-                        "rp" -> reader.skipElement().also { depth-- }
-                        else -> reader.skipElement().also { depth-- }
+        var pendingRpOpen: Text? = null
+        var pendingRpClose: Text? = null
+
+        reader.parseChildren { tag ->
+            when (tag) {
+
+                "rb" -> {
+                    val texts: MutableList<Node> = mutableListOf()
+                    reader.parseChildrenInto(texts, context)
+                    ruby.baseText.addAll(texts.filterIsInstance<Text>())
+                }
+
+                "rt" -> {
+                    val texts = mutableListOf<Node>()
+                    reader.parseChildrenInto(texts, context)
+
+                    val annotationText = texts
+                        .filterIsInstance<Text>()
+                        .joinToString("") { it.text }
+
+                    ruby.annotationText.add(
+                        RubyAnnotation(
+                            id = nextId(),
+                            annotationText = Text(
+                                id = nextId(),
+                                text = annotationText
+                            ),
+                            parenthesisOpen = pendingRpOpen,
+                            parenthesisClosed = pendingRpClose
+                        )
+                    )
+
+                    pendingRpOpen = null
+                    pendingRpClose = null
+                }
+
+                "rp" -> {
+                    val texts = mutableListOf<Node>()
+                    reader.parseChildrenInto(texts, context)
+
+                    val text = texts
+                        .filterIsInstance<Text>()
+                        .joinToString("") { it.text }
+
+                    val rpText = Text(
+                        id = nextId(),
+                        text = text
+                    )
+
+                    // Assign as open or close depending on state
+                    if (pendingRpOpen == null) {
+                        pendingRpOpen = rpText
+                    } else {
+                        pendingRpClose = rpText
                     }
                 }
 
-                EventType.TEXT, EventType.CDSECT -> pendingText += reader.text
-                EventType.END_ELEMENT -> depth--
-                else -> {}
+                else -> {
+                    val handler = context.registry.handlerFor(tag)
+                    if (handler != null) {
+                        val nodes = handler.handle(context)
+                        ruby.baseText.addAll(nodes.filterIsInstance<Text>())
+                    } else {
+                        val texts = mutableListOf<Node>()
+                        reader.parseChildrenInto(texts, context)
+                        ruby.baseText.addAll(texts.filterIsInstance<Text>())
+                    }
+                }
             }
         }
 
-        if (pendingText.isNotBlank()) {
-            baseTexts.add(
-                Text(
-                    id = nextId(),
-                    text = pendingText.trim(),
-                    originalLinkAnchor = context.reader.attributes()["id"]
-                )
-            )
-        }
-
-        return listOf(
-            Ruby(
-                id = nextId(),
-                baseText = baseTexts,
-                annotationText = annotationTexts,
-                originalLinkAnchor = context.reader.attributes()["id"]
-            )
-        )
+        return listOf(ruby)
     }
 }

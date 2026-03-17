@@ -5,10 +5,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.em
-import dev.buecherregale.ebook_reader.core.dom.Link
-import dev.buecherregale.ebook_reader.core.dom.Node
-import dev.buecherregale.ebook_reader.core.dom.Ruby
-import dev.buecherregale.ebook_reader.core.dom.Text
+import dev.buecherregale.ebook_reader.core.dom.*
 
 internal const val LINK_TAG = "URL"
 
@@ -53,8 +50,15 @@ internal fun AnnotatedString.Builder.appendRubyNode(node: Ruby, config: Renderin
         val annotation = node.annotationText.getOrNull(index)
         if (annotation != null) {
             withStyle(annotationStyle) {
-                append("(${annotation.text})")
+                append(annotation.asString())
             }
         }
     }
+}
+
+private fun RubyAnnotation.asString(): String {
+    if (parenthesisOpen != null && parenthesisClosed != null) {
+        return "$parenthesisOpen${annotationText.text}$parenthesisClosed}"
+    }
+    return annotationText.text
 }
