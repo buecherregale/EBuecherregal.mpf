@@ -1,23 +1,22 @@
 package dev.buecherregale.ebook_reader
 
 import android.content.Context
-import android.icu.text.BreakIterator
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.intl.Locale
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
 import dev.buecherregale.ebook_reader.filesystem.AndroidFileService
 import dev.buecherregale.ebook_reader.sql.EBuecherregal
-import dev.buecherregale.ebook_reader.ui.components.SelectedText
-import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.*
 import io.ktor.utils.io.asSource
 import kotlinx.io.Source
 import kotlinx.io.buffered
@@ -35,37 +34,6 @@ actual fun getPlatform(): Platform = AndroidPlatform()
 actual fun platformModule(): Module {
     return module {
         single { AndroidFileService(get()) } binds arrayOf(FileService::class)
-    }
-}
-
-@Composable
-actual fun PickImage(onImagePicked: (PickedImage?) -> Unit) {
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri == null) {
-            onImagePicked(null)
-            return@rememberLauncherForActivityResult
-        }
-
-        val contentResolver = context.contentResolver
-        val mimeType = contentResolver.getType(uri)
-        val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
-
-        if (bytes != null) {
-            onImagePicked(PickedImage(
-                name = null,
-                bytes = bytes,
-                mimeType = mimeType
-            ))
-        } else {
-            onImagePicked(null)
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        launcher.launch("image/*")
     }
 }
 
@@ -133,24 +101,28 @@ actual fun createSqlDriver(fileService: FileService, appName: String): SqlDriver
     throw IllegalArgumentException("FileService must be AndroidFileService on Android")
 }
 
-actual fun findWordInSelection(selection: SelectedText, locale: Locale): TextRange? {
-    val text = selection.text
-    val index = selection.index
-
-    if (index < 0 || index >= text.length) return null
-
-    val iterator = BreakIterator.getWordInstance(java.util.Locale.forLanguageTag(locale.toLanguageTag()))
-    iterator.setText(text)
-
-    val start = iterator.preceding(index + 1)
-    val end = iterator.next()
-
-    if (start != BreakIterator.DONE && end != BreakIterator.DONE) {
-        return TextRange(start, end)
-    }
-    return null
-}
-
 actual fun ByteReadChannel.asSource(): Source {
     return this.asSource().buffered()
+}
+
+@Composable
+actual fun dynamicColorSchemeLight(): ColorScheme {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        return dynamicLightColorScheme(LocalContext.current)
+    } else {
+        throw UnsupportedOperationException("only available on android 12+")
+    }
+}
+
+@Composable
+actual fun dynamicColorSchemeDark(): ColorScheme {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        return dynamicDarkColorScheme(LocalContext.current)
+    } else {
+        throw UnsupportedOperationException("only available on android 12+")
+    }
+}
+
+actual fun supportsDynamicColorScheme(): Boolean {
+    return true
 }

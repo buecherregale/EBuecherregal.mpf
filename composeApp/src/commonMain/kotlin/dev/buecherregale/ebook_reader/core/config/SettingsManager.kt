@@ -7,6 +7,7 @@ import dev.buecherregale.ebook_reader.core.service.filesystem.AppDirectory
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileRef
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
 import dev.buecherregale.ebook_reader.core.util.JsonUtil
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -22,6 +23,7 @@ class SettingsManager(
 ) {
 
     private var settings: ApplicationSettings = ApplicationSettings()
+
     private var _state: ApplicationState = ApplicationState()
     val state: ApplicationState
         get() = _state
@@ -33,17 +35,56 @@ class SettingsManager(
     suspend fun load() {
         val json = fileService.read(configFile())
         settings = jsonUtil.deserialize(json)
-        _state = buildState()
-        Logger.i("loaded application settings: $json")
+
+        val loadedState = buildState()
+
+        _state.setTheme(settings.theme)
+        _state.setFontSize(settings.fontSize)
+
+        _state.activeDictionaries.clear()
+        _state.activeDictionaries.putAll(loadedState.activeDictionaries)
+
+        Logger.i("loaded application settings:\n$json")
     }
 
     /**
-     * Checks if the config file exists. If not cre{
-     *         val json = fileService.read(configFile())
-     *         settings = jsonUtil.deserialize(json)
-     *         _state = buildState()
-     *         Logger.i("loaded application settings: $settings")
-     *     }ates BUT DOES NOT SAVE a blank config and state.
+     * Loads the config file at [.configFile] in a blocking manner. <br></br>
+     * Only loads visual properties like theme and font size immediately.
+     * Use [loadDictionaries] to load the rest asynchronously.
+     */
+    fun loadBlocking() {
+        if (!fileService.existsBlocking(configFile())) {
+            Logger.i("no existing settings found (blocking), using blank...")
+            return
+        }
+
+        Logger.i { "loading existing settings (blocking)..." }
+        val json = fileService.readBlocking(configFile())
+        settings = jsonUtil.deserialize(json)
+
+        _state.setTheme(settings.theme)
+        _state.setFontSize(settings.fontSize)
+
+        Logger.i("loaded application settings (blocking):\n$json")
+    }
+
+    /**
+     * Loads dictionaries asynchronously. Should be called after [loadBlocking].
+     */
+    suspend fun loadDictionaries() {
+        for ((lang, dictId) in settings.activeDictionaryIds) {
+            try {
+                dictionaryService.open(dictId).let {
+                    _state.activeDictionaries[lang] = it
+                }
+            } catch (e: Exception) {
+                Logger.w("Failed to load dictionary $dictId for language $lang", e)
+            }
+        }
+    }
+
+    /**
+     * Checks if the config file exists. If not creates **BUT DOES NOT SAVE** a blank config and state.
      */
     suspend fun loadOrCreate() {
         if (!fileService.exists(configFile())) {
@@ -51,6 +92,18 @@ class SettingsManager(
         } else {
             Logger.i { "loading existing settings..." }
             load()
+        }
+    }
+
+    /**
+     * Blocking version of [loadOrCreate].
+     * Only loads basic settings. Call [loadDictionaries] afterward.
+     */
+    fun loadOrCreateBlocking() {
+        if (!fileService.existsBlocking(configFile())) {
+            Logger.i("no existing settings found, using blank...")
+        } else {
+            loadBlocking()
         }
     }
 
@@ -91,6 +144,7 @@ class SettingsManager(
             }
         }
         newState.setFontSize(settings.fontSize)
+        newState.setTheme(settings.theme)
 
         return newState
     }
@@ -117,11 +171,19 @@ class SettingsManager(
         _state.activeDictionaries.remove(language)
         settings.activeDictionaryIds.remove(language)
     }
-    
+
     fun setFontSize(size: Float) {
         _state.setFontSize(size)
         settings.fontSize = size
     }
+
+    fun setTheme(theme: AppThemeSetting) {
+        _state.setTheme(theme)
+        settings.theme = theme
+    }
+
+    val theme: StateFlow<AppThemeSetting>
+        get() = _state.theme
 
     companion object {
         const val CONFIG_FILENAME: String = "settings.json"

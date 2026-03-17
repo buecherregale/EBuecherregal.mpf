@@ -7,27 +7,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import dev.buecherregale.ebook_reader.core.domain.Library
 import dev.buecherregale.ebook_reader.ui.components.LibraryCard
 import dev.buecherregale.ebook_reader.ui.dialog.CreateLibraryDialog
+import dev.buecherregale.ebook_reader.ui.dialog.EditLibraryDialog
 import dev.buecherregale.ebook_reader.ui.navigation.Navigator
 import dev.buecherregale.ebook_reader.ui.navigation.Screen
 import dev.buecherregale.ebook_reader.ui.viewmodel.LibraryViewModel
@@ -37,14 +27,16 @@ import ebuecherregal.composeapp.generated.resources.settings_24px
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 fun LibraryScreen(
     viewModel: LibraryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf<Library?>(null) }
     val navigator = koinInject<Navigator>()
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
@@ -54,7 +46,7 @@ fun LibraryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Libraries") },
+                title = { Text("Libraries") },
                 actions = {
                     IconButton(onClick = { navigator.push(Screen.Settings) }) {
                         Icon(painterResource(Res.drawable.settings_24px), contentDescription = "Settings")
@@ -80,7 +72,11 @@ fun LibraryScreen(
                 modifier = Modifier.padding(padding)
             ) {
                 items(state.libraries) { library ->
-                    LibraryCard(libraryService = koinInject(), library = library)
+                    LibraryCard(
+                        library = library,
+                        onRename = { showRenameDialog = it },
+                        onDelete = { viewModel.deleteLibrary(it.id) }
+                    )
                 }
             }
         }
@@ -89,9 +85,20 @@ fun LibraryScreen(
     if (showCreateDialog) {
         CreateLibraryDialog(
             onDismiss = { showCreateDialog = false },
-            onConfirm = { name, image ->
-                viewModel.createLibrary(name, image?.bytes)
+            onConfirm = { name ->
+                viewModel.createLibrary(name)
                 showCreateDialog = false
+            }
+        )
+    }
+
+    showRenameDialog?.let { library ->
+        EditLibraryDialog(
+            library = library,
+            onDismiss = { showRenameDialog = null },
+            onConfirm = { newName ->
+                viewModel.renameLibrary(library.id, newName)
+                showRenameDialog = null
             }
         )
     }

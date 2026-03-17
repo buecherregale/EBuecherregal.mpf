@@ -13,11 +13,18 @@ class ApplicationState {
      * @see Dictionary.originalLanguage
      */
     var activeDictionaries: MutableMap<Locale, Dictionary> = mutableMapOf()
-    
+
     private val _fontSize = MutableStateFlow(20f)
     val fontSize: StateFlow<Float> = _fontSize.asStateFlow()
-    
+
     fun setFontSize(size: Float) {
         _fontSize.value = size
+    }
+
+    private val _theme = MutableStateFlow(AppThemeSetting.SYSTEM)
+    val theme: StateFlow<AppThemeSetting> = _theme.asStateFlow()
+
+    fun setTheme(theme: AppThemeSetting) {
+        _theme.value = theme
     }
 }

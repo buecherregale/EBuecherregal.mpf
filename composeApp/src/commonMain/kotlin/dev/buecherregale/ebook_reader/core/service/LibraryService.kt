@@ -15,9 +15,10 @@ import kotlin.uuid.Uuid
  */
 @OptIn(ExperimentalUuidApi::class)
 class LibraryService(
-    fileService: FileService,
+    private val fileService: FileService,
     private val repository: LibraryRepository,
-    private val imageRepository: LibraryImageRepository) {
+    private val imageRepository: LibraryImageRepository
+) {
     private val libDir: FileRef = fileService.getAppDirectory(AppDirectory.STATE).resolve("libraries")
 
     /**
@@ -28,7 +29,7 @@ class LibraryService(
      * @param libraryId the id of the library
      * @param bookId the book to add
      */
-    suspend fun addBook(libraryId: Uuid, bookId: Uuid) {
+    suspend fun addBook(libraryId: Uuid, bookId: String) {
         repository.addBook(libraryId, bookId)
     }
 
@@ -36,15 +37,11 @@ class LibraryService(
      * Create a library based on the name and saves it to disk.
      *
      * @param name the desired name
-     * @param imageBytes the bytes for the cover image
      * @return the created library
      */
-    suspend fun createLibrary(name: String, imageBytes: ByteArray?): Library {
+    suspend fun createLibrary(name: String): Library {
         Logger.i("creating library '$name'")
         val l = Library(Uuid.random(), name)
-        if (imageBytes != null) {
-            imageRepository.save(l.id, imageBytes)
-        }
         repository.save(l.id, l)
         return l
     }
@@ -65,7 +62,7 @@ class LibraryService(
      * @return the list of libraries (mutable)
      */
     suspend fun loadLibraries(): List<Library> {
-        Logger.d("loading libraries from '$libDir'")
+        Logger.i("loading libraries from '${libDir.path}'")
 
         val libraries = repository.loadAll()
 
@@ -82,5 +79,42 @@ class LibraryService(
      */
     suspend fun imageBytes(library: Library): ByteArray? {
         return imageRepository.load(library.id)
+    }
+
+    /**
+     * Updates the library image written on disk.
+     *
+     * @param libraryId the id of the library to update the image for
+     * @param imageBytes the byte array of the image
+     */
+    suspend fun updateImage(libraryId: Uuid, imageBytes: ByteArray) {
+        Logger.i { "updating image for library $libraryId" }
+        imageRepository.save(libraryId, imageBytes)
+    }
+
+    /**
+     * Renames a library.
+     *
+     * @param libraryId the id of the library
+     * @param newName the new name
+     */
+    suspend fun renameLibrary(libraryId: Uuid, newName: String) {
+        val library = loadLibrary(libraryId)
+        repository.save(libraryId, library.copy(name = newName))
+    }
+
+    /**
+     * Deletes a library.
+     *
+     * @param libraryId the id of the library
+     */
+    suspend fun deleteLibrary(libraryId: Uuid) {
+        Logger.i { "deleting library $libraryId" }
+        repository.delete(libraryId)
+        val imageFile = imageRepository.getFile(libraryId)
+        if (fileService.exists(imageFile)) {
+            Logger.i { "deleting cover image" }
+            imageRepository.delete(libraryId)
+        }
     }
 }

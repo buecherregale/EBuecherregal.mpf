@@ -1,20 +1,11 @@
 package dev.buecherregale.ebook_reader.filesystem
 
 import co.touchlab.kermit.Logger
-import dev.buecherregale.ebook_reader.core.service.filesystem.AppDirectory
-import dev.buecherregale.ebook_reader.core.service.filesystem.FileMetadata
-import dev.buecherregale.ebook_reader.core.service.filesystem.FileRef
-import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
-import dev.buecherregale.ebook_reader.core.service.filesystem.ZipFileRef
+import dev.buecherregale.ebook_reader.core.service.filesystem.*
 import dev.buecherregale.ebook_reader.toPath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.io.Sink
-import kotlinx.io.Source
-import kotlinx.io.asInputStream
-import kotlinx.io.asSink
-import kotlinx.io.asSource
-import kotlinx.io.buffered
+import kotlinx.io.*
 import nl.adaptivity.xmlutil.XmlReader
 import nl.adaptivity.xmlutil.newReader
 import nl.adaptivity.xmlutil.xmlStreaming
@@ -78,6 +69,10 @@ class DesktopFileService(appName: String) : FileService {
         }
     }
 
+    override fun readBlocking(file: FileRef): String {
+        return Files.readString(file.toPath())
+    }
+
     override suspend fun readBytes(file: FileRef): ByteArray {
         return withContext(Dispatchers.IO) {
             Files.readAllBytes(file.toPath())
@@ -94,7 +89,7 @@ class DesktopFileService(appName: String) : FileService {
     }
 
     override fun open(file: FileRef): Source {
-        return Files.newInputStream(file.toPath(),StandardOpenOption.READ)
+        return Files.newInputStream(file.toPath(), StandardOpenOption.READ)
             .asSource()
             .buffered()
     }
@@ -158,6 +153,10 @@ class DesktopFileService(appName: String) : FileService {
     }
 
     override suspend fun exists(file: FileRef): Boolean {
+        return Files.exists(file.toPath())
+    }
+
+    override fun existsBlocking(file: FileRef): Boolean {
         return Files.exists(file.toPath())
     }
 
@@ -235,7 +234,7 @@ class DesktopFileService(appName: String) : FileService {
         return GZIPInputStream(source.asInputStream()).asSource().buffered()
     }
 
-    override fun streamXml(xmlStream: Source) : XmlReader {
+    override fun streamXml(xmlStream: Source): XmlReader {
         return xmlStreaming.newReader(xmlStream.asInputStream())
     }
 }

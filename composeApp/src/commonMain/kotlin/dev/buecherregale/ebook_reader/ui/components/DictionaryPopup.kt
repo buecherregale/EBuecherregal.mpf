@@ -10,18 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.intl.Locale
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import dev.buecherregale.ebook_reader.core.domain.Dictionary
 import dev.buecherregale.ebook_reader.core.service.DictionaryService
-import dev.buecherregale.ebook_reader.findWordInSelection
+import dev.buecherregale.ebook_reader.ui.dom.HighlightDismisser
+import dev.buecherregale.ebook_reader.ui.dom.SelectedText
 import org.koin.compose.koinInject
 
 
@@ -30,21 +26,23 @@ class PopupState {
     var text by mutableStateOf<String?>(null)
     var bounds by mutableStateOf<Rect?>(null)
     var selectedRange by mutableStateOf<TextRange?>(null)
-    var selectedBlockId by mutableStateOf<String?>(null)
+    var dismisser by mutableStateOf<HighlightDismisser?>(null)
 
-    fun show(selectedText: SelectedText, blockId: String, locale: Locale) {
-        val word = findWordInSelection(selectedText, locale) ?: return
-        text = selectedText.text.substring(word.start, word.end)
+    fun show(selectedText: SelectedText, highlightDismisser: HighlightDismisser) {
+        text = selectedText.word
         bounds = selectedText.bounds
-        selectedRange = TextRange(word.start, word.end)
-        selectedBlockId = blockId
+        selectedRange = selectedText.wordRange
+        dismisser = highlightDismisser
     }
 
     fun dismiss() {
         text = null
         bounds = null
         selectedRange = null
-        selectedBlockId = null
+        dismisser.let {
+            dismisser?.invoke()
+            dismisser = null
+        }
     }
 
     val isVisible: Boolean
@@ -112,7 +110,7 @@ fun DictionaryPopup(
                 Text(
                     text = "No definition found.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                )
             } else {
                 Text(
                     text = entry.reading,

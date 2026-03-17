@@ -10,11 +10,11 @@ import kotlin.uuid.Uuid
 
 class LibraryImageRepository(
     delegate: FileRepository<Uuid>
-): FileBasedRepository<Uuid> by delegate
+) : FileBasedRepository<Uuid> by delegate
 
-interface LibraryRepository: Repository<Uuid, Library> {
+interface LibraryRepository : Repository<Uuid, Library> {
     suspend fun loadByName(name: String): Library?
-    suspend fun addBook(libraryId: Uuid, bookId: Uuid)
+    suspend fun addBook(libraryId: Uuid, bookId: String)
 }
 
 class LibrarySqlRepository(
@@ -32,7 +32,6 @@ class LibrarySqlRepository(
                     name = rowsForLibrary.first().library_name,
                     bookIds = rowsForLibrary
                         .mapNotNull { it.book_id }
-                        .map(Uuid::parse)
                 )
             }
     }
@@ -49,8 +48,8 @@ class LibrarySqlRepository(
                 return@loadByName libraries?.toLibrary(loadBookIds(libraries.id))
             }
 
-    override suspend fun addBook(libraryId: Uuid, bookId: Uuid) {
-        queries.insertLibraryBook(libraryId.toString(), bookId.toString())
+    override suspend fun addBook(libraryId: Uuid, bookId: String) {
+        queries.insertLibraryBook(libraryId.toString(), bookId)
     }
 
     override suspend fun save(key: Uuid, value: Library): Library {
@@ -74,7 +73,7 @@ class LibrarySqlRepository(
         value.bookIds.forEach { bookId ->
             queries.insertLibraryBook(
                 library_id = key.toString(),
-                book_id = bookId.toString()
+                book_id = bookId
             )
         }
         return load(key)!!
@@ -85,13 +84,12 @@ class LibrarySqlRepository(
         queries.deleteLibrary(key.toString())
     }
 
-    private fun loadBookIds(libraryId: String): List<Uuid> =
+    private fun loadBookIds(libraryId: String): List<String> =
         queries.selectBookIdsForLibrary(libraryId)
             .executeAsList()
-            .map { Uuid.parse(it) }
 }
 
-private fun Libraries.toLibrary(bookIds: List<Uuid>): Library =
+private fun Libraries.toLibrary(bookIds: List<String>): Library =
     Library(
         id = Uuid.parse(id),
         name = name,

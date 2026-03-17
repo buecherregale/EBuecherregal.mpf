@@ -4,6 +4,7 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
+import dev.buecherregale.ebook_reader.core.config.AppThemeSetting
 import dev.buecherregale.ebook_reader.core.config.SettingsManager
 import dev.buecherregale.ebook_reader.core.domain.DictionaryMetadata
 import dev.buecherregale.ebook_reader.core.service.DictionaryService
@@ -33,12 +34,13 @@ class SettingsViewModel(
 
             val supported = dictionaryService.listSupportedDictionaryNames()
             val downloaded = dictionaryService.listDownloadedDictionaryMetadata()
-            
-            val activeIds = settingsManager.state.activeDictionaries.entries.associate { 
-                it.key to it.value.id 
+
+            val activeIds = settingsManager.state.activeDictionaries.entries.associate {
+                it.key to it.value.id
             }
-            
+
             val fontSize = settingsManager.state.fontSize.value
+            val theme = settingsManager.state.theme.value
 
             _uiState.update {
                 it.copy(
@@ -46,6 +48,7 @@ class SettingsViewModel(
                     downloadedDictionaries = downloaded,
                     activeDictionaryIds = activeIds,
                     fontSize = fontSize,
+                    theme = theme,
                     isLoading = false
                 )
             }
@@ -87,7 +90,7 @@ class SettingsViewModel(
             try {
                 dictionaryService.delete(dictionaryId)
                 val downloaded = dictionaryService.listDownloadedDictionaryMetadata()
-                
+
                 val activeIds = _uiState.value.activeDictionaryIds.toMutableMap()
                 val entryToRemove = activeIds.entries.find { it.value == dictionaryId }
                 if (entryToRemove != null) {
@@ -97,12 +100,12 @@ class SettingsViewModel(
                     settingsManager.save()
                 }
 
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
-                        downloadedDictionaries = downloaded, 
+                        downloadedDictionaries = downloaded,
                         activeDictionaryIds = activeIds,
                         message = "Dictionary deleted"
-                    ) 
+                    )
                 }
             } catch (e: Exception) {
                 Logger.e(e) { "failed to delete dictionary" }
@@ -110,9 +113,13 @@ class SettingsViewModel(
             }
         }
     }
-    
+
     fun setFontSize(size: Float) {
         _uiState.update { it.copy(fontSize = size) }
+    }
+
+    fun setTheme(theme: AppThemeSetting) {
+        _uiState.update { it.copy(theme = theme) }
     }
 
     fun saveSettings() {
@@ -120,6 +127,7 @@ class SettingsViewModel(
             _uiState.update { it.copy(isSaving = true, error = null, message = null) }
             try {
                 settingsManager.setFontSize(_uiState.value.fontSize)
+                settingsManager.setTheme(_uiState.value.theme)
                 settingsManager.save()
                 _uiState.update { it.copy(isSaving = false, message = "Settings saved successfully") }
             } catch (e: Exception) {
@@ -127,7 +135,7 @@ class SettingsViewModel(
             }
         }
     }
-    
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
@@ -143,6 +151,7 @@ data class SettingsUiState(
     val downloadedDictionaries: List<DictionaryMetadata> = emptyList(),
     val activeDictionaryIds: Map<Locale, Uuid> = emptyMap(),
     val fontSize: Float = 20f,
+    val theme: AppThemeSetting = AppThemeSetting.SYSTEM,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null,

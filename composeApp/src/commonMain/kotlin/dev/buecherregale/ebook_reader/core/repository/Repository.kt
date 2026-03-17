@@ -1,5 +1,6 @@
 package dev.buecherregale.ebook_reader.core.repository
 
+import co.touchlab.kermit.Logger
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileRef
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
 import kotlinx.io.Source
@@ -45,12 +46,15 @@ class FileRepository<Key>(
 ) : FileBasedRepository<Key> {
 
     override suspend fun loadAll(): List<ByteArray> {
+        Logger.i { "loading all files from '${storeInDir.path}'" }
         return fileService.listChildren(storeInDir)
             .map { fileService.readBytes(it) }
     }
 
     override suspend fun load(key: Key): ByteArray? {
         val file = storeInDir.resolve(keyToFilename(key))
+
+        Logger.i { "loading resource '$key' from file '${storeInDir.path}'" }
         if (!fileService.exists(file)) return null
 
         return fileService.readBytes(file)
@@ -59,11 +63,13 @@ class FileRepository<Key>(
     override suspend fun save(key: Key, value: ByteArray): ByteArray {
         val file = storeInDir.resolve(keyToFilename(key))
 
+        Logger.i { "saving resource '$key' to file '${storeInDir.path}'" }
         fileService.write(file, value)
         return load(key)!! // should def exist now
     }
 
     override suspend fun delete(key: Key) {
+        Logger.i { "deleting resource '$key' with file '${keyToFilename(key)}'" }
         fileService.delete(storeInDir.resolve(keyToFilename(key)))
     }
 
@@ -71,6 +77,8 @@ class FileRepository<Key>(
 
     override suspend fun loadSource(key: Key): Source? {
         val file = getFile(key)
+
+        Logger.i { "loading resource '$key' from file '${storeInDir.path}' as source" }
         if (!fileService.exists(file)) return null
         return fileService.open(file)
     }

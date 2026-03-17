@@ -1,14 +1,12 @@
 package dev.buecherregale.ebook_reader
 
+import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.intl.Locale
 import app.cash.sqldelight.db.SqlDriver
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
-import dev.buecherregale.ebook_reader.ui.components.SelectedText
 import ebuecherregal.composeapp.generated.resources.Res
 import ebuecherregal.composeapp.generated.resources.icon_colored
-import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.*
 import kotlinx.io.Source
 import org.jetbrains.compose.resources.DrawableResource
 import org.koin.core.module.Module
@@ -33,14 +31,17 @@ expect fun platformModule(): Module
 @Composable
 expect fun PickBook(onFilePicked: (PickedFile?) -> Unit)
 
-@Composable
-expect fun PickImage(onImagePicked: (PickedImage?) -> Unit)
-
 expect fun createSqlDriver(fileService: FileService, appName: String): SqlDriver
 
-expect fun findWordInSelection(selection: SelectedText, locale: Locale): TextRange?
-
 expect fun ByteReadChannel.asSource(): Source
+
+expect fun supportsDynamicColorScheme(): Boolean
+
+@Composable
+expect fun dynamicColorSchemeLight(): ColorScheme
+
+@Composable
+expect fun dynamicColorSchemeDark(): ColorScheme
 
 data class PickedFile(
     val path: String

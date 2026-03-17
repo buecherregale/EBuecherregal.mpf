@@ -6,19 +6,11 @@ import androidx.annotation.RequiresApi
 import dev.buecherregale.ebook_reader.core.service.filesystem.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.io.Sink
-import kotlinx.io.Source
-import kotlinx.io.asInputStream
-import kotlinx.io.asSink
-import kotlinx.io.asSource
-import kotlinx.io.buffered
+import kotlinx.io.*
 import nl.adaptivity.xmlutil.XmlReader
 import nl.adaptivity.xmlutil.newReader
 import nl.adaptivity.xmlutil.xmlStreaming
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileNotFoundException
+import java.io.*
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPInputStream
@@ -32,6 +24,10 @@ class AndroidFileService(val context: Context) : FileService {
         return withContext(Dispatchers.IO) {
             file.toFile().readText(StandardCharsets.UTF_8)
         }
+    }
+
+    override fun readBlocking(file: FileRef): String {
+        return file.toFile().readText(StandardCharsets.UTF_8)
     }
 
     override suspend fun readBytes(file: FileRef): ByteArray {
@@ -104,12 +100,18 @@ class AndroidFileService(val context: Context) : FileService {
     }
 
     override suspend fun exists(file: FileRef): Boolean {
+        return withContext(Dispatchers.IO) {
+            file.toFile().exists()
+        }
+    }
+
+    override fun existsBlocking(file: FileRef): Boolean {
         return file.toFile().exists()
     }
 
     override suspend fun getMetadata(file: FileRef): FileMetadata {
         val targetFile = file.toFile()
-        if (!targetFile.exists()) {
+        if (!withContext(Dispatchers.IO) { targetFile.exists() }) {
             throw FileNotFoundException("file $file does not exist")
         }
         val fileName = targetFile.name
@@ -168,7 +170,7 @@ class AndroidFileService(val context: Context) : FileService {
         return GZIPInputStream(source.asInputStream(), 8192).asSource().buffered()
     }
 
-    override fun streamXml(xmlStream: Source) : XmlReader {
+    override fun streamXml(xmlStream: Source): XmlReader {
         return xmlStreaming.newReader(xmlStream.asInputStream())
     }
 }
