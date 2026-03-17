@@ -5,6 +5,9 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
@@ -100,4 +103,26 @@ actual fun createSqlDriver(fileService: FileService, appName: String): SqlDriver
 
 actual fun ByteReadChannel.asSource(): Source {
     return this.asSource().buffered()
+}
+
+@Composable
+actual fun dynamicColorSchemeLight(): ColorScheme {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        return dynamicLightColorScheme(LocalContext.current)
+    } else {
+        throw UnsupportedOperationException("only available on android 12+")
+    }
+}
+
+@Composable
+actual fun dynamicColorSchemeDark(): ColorScheme {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        return dynamicDarkColorScheme(LocalContext.current)
+    } else {
+        throw UnsupportedOperationException("only available on android 12+")
+    }
+}
+
+actual fun supportsDynamicColorScheme(): Boolean {
+    return true
 }

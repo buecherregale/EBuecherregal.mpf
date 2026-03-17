@@ -1,5 +1,6 @@
 package dev.buecherregale.ebook_reader
 
+import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import app.cash.sqldelight.db.SqlDriver
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
@@ -33,6 +34,14 @@ expect fun PickBook(onFilePicked: (PickedFile?) -> Unit)
 expect fun createSqlDriver(fileService: FileService, appName: String): SqlDriver
 
 expect fun ByteReadChannel.asSource(): Source
+
+expect fun supportsDynamicColorScheme(): Boolean
+
+@Composable
+expect fun dynamicColorSchemeLight(): ColorScheme
+
+@Composable
+expect fun dynamicColorSchemeDark(): ColorScheme
 
 data class PickedFile(
     val path: String

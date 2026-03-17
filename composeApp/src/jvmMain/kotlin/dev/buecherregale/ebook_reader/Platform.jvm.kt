@@ -1,5 +1,6 @@
 package dev.buecherregale.ebook_reader
 
+import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
@@ -62,4 +63,18 @@ actual fun createSqlDriver(fileService: FileService, appName: String): SqlDriver
 
 actual fun ByteReadChannel.asSource(): Source {
     return this.asSource().buffered()
+}
+
+@Composable
+actual fun dynamicColorSchemeLight(): ColorScheme {
+    throw UnsupportedOperationException("only available on android")
+}
+
+@Composable
+actual fun dynamicColorSchemeDark(): ColorScheme {
+    throw UnsupportedOperationException("only available on android")
+}
+
+actual fun supportsDynamicColorScheme(): Boolean {
+    return false
 }

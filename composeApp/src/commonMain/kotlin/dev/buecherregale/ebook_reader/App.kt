@@ -2,13 +2,15 @@ package dev.buecherregale.ebook_reader
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation3.ui.NavDisplay
 import dev.buecherregale.ebook_reader.core.config.SettingsManager
 import dev.buecherregale.ebook_reader.core.language.dictionaries.DictionaryImporterFactory
 import dev.buecherregale.ebook_reader.core.language.dictionaries.jmdict.JMDictImporter
 import dev.buecherregale.ebook_reader.ui.navigation.Navigator
 import dev.buecherregale.ebook_reader.ui.navigation.navigationModule
-import dev.buecherregale.ebook_reader.ui.theming.ShellTheme
+import dev.buecherregale.ebook_reader.ui.theming.AppTheme
 import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.compose.navigation3.koinEntryProvider
@@ -28,11 +30,16 @@ fun App() {
         registerImplsInFactory()
 
         val settingsManager = koinInject<SettingsManager>()
+
+        settingsManager.loadOrCreateBlocking()
+
         LaunchedEffect(Unit) {
-            settingsManager.loadOrCreate()
+            settingsManager.loadDictionaries()
         }
 
-        ShellTheme {
+        val theme by settingsManager.theme.collectAsState()
+
+        AppTheme(theme) {
             NavDisplay(
                 backStack = koinInject<Navigator>().backStack,
                 entryProvider = koinEntryProvider()

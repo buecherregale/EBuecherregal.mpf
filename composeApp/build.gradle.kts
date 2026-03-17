@@ -53,6 +53,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.compose.ui.tooling.preview)
+            implementation(libs.compose.material3)
 
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.compose)

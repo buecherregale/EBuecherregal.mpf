@@ -19,6 +19,15 @@ interface FileService {
     suspend fun read(file: FileRef): String
 
     /**
+     * Reads a files whole content as (UTF-8) String, in a blocking manner.
+     *
+     * @param file The reference to the file to read.
+     * @return The file content as a string.
+     * @see [read]
+     */
+    fun readBlocking(file: FileRef): String
+
+    /**
      * Reads a files' whole content to a byte array.
      *
      * @param file the reference
@@ -99,6 +108,15 @@ interface FileService {
     suspend fun exists(file: FileRef): Boolean
 
     /**
+     * Checks if the given file exists, in a blocking manner.
+     *
+     * @param file the file to check
+     * @return if the file exists
+     * @see [exists]
+     */
+    fun existsBlocking(file: FileRef): Boolean
+
+    /**
      * Obtains metadata from a file.
      *
      * @param file the ref
@@ -145,5 +163,5 @@ interface FileService {
      * @param xmlStream the source to stream containing XML
      * @return the XML reader
      */
-    fun streamXml(xmlStream: Source) : XmlReader
+    fun streamXml(xmlStream: Source): XmlReader
 }

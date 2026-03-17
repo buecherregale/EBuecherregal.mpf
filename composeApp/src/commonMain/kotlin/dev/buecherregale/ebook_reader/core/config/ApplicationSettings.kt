@@ -12,6 +12,8 @@ import kotlin.uuid.Uuid
 @Serializable
 @OptIn(ExperimentalUuidApi::class)
 class ApplicationSettings {
-    internal var activeDictionaryIds: MutableMap<@Serializable(with = LocaleSerializer::class) Locale, Uuid> = mutableMapOf()
+    internal var activeDictionaryIds: MutableMap<@Serializable(with = LocaleSerializer::class) Locale, Uuid> =
+        mutableMapOf()
     var fontSize: Float = 20f
+    var theme: AppThemeSetting = AppThemeSetting.SYSTEM
 }
