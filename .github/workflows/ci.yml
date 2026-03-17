@@ -1,4 +1,4 @@
-name: CI build - JVM & Android
+name: CI Build - JVM & Android
 
 on:
   push:
@@ -30,11 +30,10 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+            gradle-${{ runner.os }}-
 
       - name: Build JVM
         run: ./gradlew :desktopApp:build --stacktrace
 
       - name: Build Android
         run: ./gradlew :androidApp:assembleDebug --stacktrace
-
