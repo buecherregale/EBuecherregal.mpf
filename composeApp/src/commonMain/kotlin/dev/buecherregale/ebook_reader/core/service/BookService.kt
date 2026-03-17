@@ -54,7 +54,7 @@ class BookService(
             targetId = bookId
         )
 
-        Logger.d { "successfully parsed ${book.second.id}" }
+        Logger.d { "successfully parsed ${book.second.id} using ${parser::class.simpleName}" }
 
         repository.save(bookId, book.first)
         fileRepository.save(bookId, jsonUtil.serialize(book.second).encodeToByteArray())
@@ -136,8 +136,6 @@ class BookService(
             newProgress,
             book.metadata,
         )
-
-        Logger.i { "updating progress for book ${book.id} to ${updated.progress}" }
 
         saveBookData(updated)
         return updated

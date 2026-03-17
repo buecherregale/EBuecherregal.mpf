@@ -118,14 +118,28 @@ internal class LinkHandler : TagHandler {
 }
 
 internal class ImageHandler : TagHandler {
-    override val supportedTags = setOf("img", "figure")
+    override val supportedTags =
+        setOf("img", "figure", "image") // for some fucking reason the titlepage contains an image with `image` tag
 
     override fun handle(context: ParseContext): List<Node> {
         return when (context.reader.localName.lowercase()) {
             "img" -> listOf(handleImg(context))
             "figure" -> listOf(handleFigure(context))
+            "image" -> listOf(handleImage(context))
             else -> emptyList()
         }
+    }
+    
+    private fun handleImage(context: ParseContext): Node {
+        val attrs = context.reader.attributes()
+        val image = Image(
+            id = nextId(),
+            src = attrs.entries.find { it.key.startsWith("href") }?.value ?: "",
+            alt = attrs["alt"] ?: "",
+            originalLinkAnchor = attrs["id"],
+        )
+        context.reader.skipElement()
+        return image
     }
 
     private fun handleImg(context: ParseContext): Node {
