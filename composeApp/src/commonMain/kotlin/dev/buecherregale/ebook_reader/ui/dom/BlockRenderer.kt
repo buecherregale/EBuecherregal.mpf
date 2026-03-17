@@ -21,7 +21,7 @@ fun DomDocument(
     document: Document,
     config: RenderingConfig,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     Column(modifier = modifier) {
         if (document.children.isEmpty())
@@ -44,7 +44,7 @@ fun DomDivision(
     division: Division,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     Column(modifier = modifier) {
         if (division.children.isEmpty())
@@ -67,7 +67,7 @@ fun DomChapter(
     chapter: Chapter,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     Column(modifier = modifier) {
         if (chapter.children.isEmpty())
@@ -90,7 +90,7 @@ fun DomParagraph(
     paragraph: Paragraph,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     val (inlineNodes, blockNodes) = paragraph.children.partition { it is Inline }
 
@@ -118,7 +118,7 @@ fun DomHeading(
     heading: Heading,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     val headingConfig = config.copy(
         baseTextSize = config.headingSize(heading.level).fontSize,

@@ -1,6 +1,7 @@
 package dev.buecherregale.ebook_reader.ui.dom
 
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -28,7 +29,7 @@ fun DomText(
     text: Text,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     Text(
         text = buildAnnotatedString {
@@ -70,7 +71,7 @@ fun DomLink(
     link: Link,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     InlineContentRenderer(nodes = listOf(link), config = config, modifier = modifier, onTextSelected = onTextSelected)
 }
@@ -85,10 +86,15 @@ fun DomRuby(
     ruby: Ruby,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     InlineContentRenderer(nodes = listOf(ruby), config = config, modifier = modifier, onTextSelected = onTextSelected)
 }
+
+/**
+ * A function that when called, should dismiss the current highlighted section.
+ */
+typealias HighlightDismisser = () -> Unit
 
 /**
  * Renders inline [Node]s as a single flowing text, handling link taps correctly.
@@ -105,14 +111,27 @@ internal fun InlineContentRenderer(
     nodes: List<Node>,
     config: RenderingConfig,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     val uriHandler = LocalUriHandler.current
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
-    val annotated = buildAnnotatedString {
-        nodes.forEach { appendInlineNode(it, config) }
+    var highlightedRange by remember { mutableStateOf<TextRange?>(null) }
+    val highlightColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+    val dismissHighlight = { highlightedRange = null }
+
+    val annotated = remember(nodes, highlightedRange) {
+        buildAnnotatedString {
+            nodes.forEach { appendInlineNode(it, config) }
+            highlightedRange?.let { range ->
+                addStyle(
+                    style = SpanStyle(background = highlightColor),
+                    start = range.start,
+                    end = range.end,
+                )
+            }
+        }
     }
 
     Text(
@@ -125,27 +144,50 @@ internal fun InlineContentRenderer(
         modifier = modifier
             .onGloballyPositioned { coordinates = it }
             .pointerInput(annotated, onTextSelected) {
-                detectTapGestures { tapPos ->
-                    val lr = layoutResult.value ?: return@detectTapGestures
-                    val offset = lr.getOffsetForPosition(tapPos)
+                detectTapGestures(
+                    onTap = { tapPos ->
+                        val lr = layoutResult.value ?: return@detectTapGestures
+                        val offset = lr.getOffsetForPosition(tapPos)
 
-                    // links have priority
-                    val link = annotated
-                        .getStringAnnotations(LINK_TAG, offset, offset)
-                        .firstOrNull()
-                    if (link != null) {
-                        uriHandler.openUri(link.item)
-                        return@detectTapGestures
-                    }
+                        val link = annotated
+                            .getStringAnnotations(LINK_TAG, offset, offset)
+                            .firstOrNull()
+                        if (link != null) {
+                            highlightedRange = null
+                            uriHandler.openUri(link.item)
+                            return@detectTapGestures
+                        }
 
-                    val coords = coordinates ?: return@detectTapGestures
-                    resolveSelectedText(
-                        tapPos = tapPos,
-                        layoutResult = lr,
-                        fullText = annotated.text,
-                        localToScreen = coords::localToWindow,
-                    )?.let(onTextSelected)
-                }
+                        val coords = coordinates ?: return@detectTapGestures
+                        val wordRange = lr.getWordBoundary(offset)
+
+                        if (wordRange.start >= wordRange.end
+                            || annotated.text.substring(wordRange.start, wordRange.end).isBlank()
+                        ) {
+                            highlightedRange = null
+                            return@detectTapGestures
+                        }
+
+                        highlightedRange = if (highlightedRange == TextRange(wordRange.start, wordRange.end)) {
+                            null
+                        } else {
+                            TextRange(wordRange.start, wordRange.end)
+                        }
+
+                        resolveSelectedText(
+                            tapPos = tapPos,
+                            layoutResult = lr,
+                            fullText = annotated.text,
+                            localToScreen = coords::localToWindow,
+                        )?.let {
+                            onTextSelected(it, dismissHighlight)
+                        }
+                    },
+                    onPress = {
+                        if (tryAwaitRelease()) { /* consumed */
+                        }
+                    },
+                )
             },
         onTextLayout = { layoutResult.value = it },
     )

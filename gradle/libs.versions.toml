@@ -28,7 +28,6 @@ xmlutil = "1.0.0-rc2"
 ktor = "3.4.0"
 koin = "4.2.0-RC1"
 sqlDelight = "2.2.1"
-icuJvm = "78.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -57,14 +56,14 @@ compose-material3 = { module = "org.jetbrains.compose.material3:material3", vers
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
 kotlinx-json-io = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json-io", version.ref = "kotlinx-json" }
-kotlinx-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-json"}
+kotlinx-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-json" }
 
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 slf4j-backend = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 
-xmlutil-core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlutil"}
-xmlutil-serialization = { module ="io.github.pdvrieze.xmlutil:serialization", version.ref = "xmlutil" }
+xmlutil-core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlutil" }
+xmlutil-serialization = { module = "io.github.pdvrieze.xmlutil:serialization", version.ref = "xmlutil" }
 
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
@@ -82,9 +81,6 @@ sql-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version
 sql-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqlDelight" }
 sql-dialect = { module = "app.cash.sqldelight:sqlite-3-38-dialect", version.ref = "sqlDelight" }
 
-icu-jvm = { module = "com.ibm.icu:icu4j", version.ref = "icuJvm" }
-icu-jvm-charset = { module = "com.ibm.icu:icu4j-charset", version.ref = "icuJvm" }
-
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
@@ -92,7 +88,7 @@ composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "com
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqlDelight" }

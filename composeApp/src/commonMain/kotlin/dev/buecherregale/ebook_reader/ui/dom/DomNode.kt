@@ -29,7 +29,7 @@ fun DomNode(
     node: Node,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     when (node) {
         is Document -> DomDocument(book, node, config, modifier, onTextSelected)

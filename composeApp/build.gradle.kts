@@ -35,20 +35,20 @@ kotlin {
             isStatic = true
         }
     }
-    
+
     jvm()
-    
+
     js {
         browser()
         binaries.executable()
     }
-    
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
         binaries.executable()
     }
-    
+
     sourceSets {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
@@ -102,8 +102,6 @@ kotlin {
             implementation(libs.ktor.client.apache)
             implementation(libs.slf4j.backend)
             implementation(libs.sql.driver.jvm)
-            implementation(libs.icu.jvm)
-            implementation(libs.icu.jvm.charset)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

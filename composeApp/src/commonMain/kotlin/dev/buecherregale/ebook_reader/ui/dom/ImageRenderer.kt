@@ -60,7 +60,7 @@ fun DomImageBlock(
     block: ImageBlock,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     Column(modifier = modifier) {
         DomImage(book = book, image = block.image, config = config)

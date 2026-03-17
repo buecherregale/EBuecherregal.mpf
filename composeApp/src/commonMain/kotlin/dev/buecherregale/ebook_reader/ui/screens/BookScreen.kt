@@ -141,9 +141,9 @@ fun BookScreen(
                     initialProgress = state.book.progress,
                     onProgressChanged = { viewModel.updateProgress(it) },
                     onTotalPagesChanged = { totalPages = it },
-                    onTextSelectedText = {
-                        Logger.i { "selected word: ${it.word}" }
-                        dictionaryPopupState.show(it)
+                    onTextSelected = { selection: SelectedText, callback: HighlightDismisser ->
+                        Logger.i { "selected word: ${selection.word}" }
+                        dictionaryPopupState.show(selection, callback)
                     },
                 )
                 state.dictionary?.let {
@@ -169,7 +169,7 @@ fun PaginatedContent(
     initialProgress: Double,
     onProgressChanged: (Double) -> Unit = {},
     onTotalPagesChanged: (Int) -> Unit = {},
-    onTextSelectedText: (SelectedText) -> Unit = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     val contentIndex = remember(dom) { dom.buildContentIndex() }
     val scope = rememberCoroutineScope()
@@ -293,7 +293,7 @@ fun PaginatedContent(
                                     book = book,
                                     node = node,
                                     config = config,
-                                    onTextSelected = onTextSelectedText,
+                                    onTextSelected = onTextSelected,
                                 )
                             }
                         }

@@ -16,6 +16,7 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import dev.buecherregale.ebook_reader.core.domain.Dictionary
 import dev.buecherregale.ebook_reader.core.service.DictionaryService
+import dev.buecherregale.ebook_reader.ui.dom.HighlightDismisser
 import dev.buecherregale.ebook_reader.ui.dom.SelectedText
 import org.koin.compose.koinInject
 
@@ -25,17 +26,23 @@ class PopupState {
     var text by mutableStateOf<String?>(null)
     var bounds by mutableStateOf<Rect?>(null)
     var selectedRange by mutableStateOf<TextRange?>(null)
+    var dismisser by mutableStateOf<HighlightDismisser?>(null)
 
-    fun show(selectedText: SelectedText) {
+    fun show(selectedText: SelectedText, highlightDismisser: HighlightDismisser) {
         text = selectedText.word
         bounds = selectedText.bounds
         selectedRange = selectedText.wordRange
+        dismisser = highlightDismisser
     }
 
     fun dismiss() {
         text = null
         bounds = null
         selectedRange = null
+        dismisser.let {
+            dismisser?.invoke()
+            dismisser = null
+        }
     }
 
     val isVisible: Boolean

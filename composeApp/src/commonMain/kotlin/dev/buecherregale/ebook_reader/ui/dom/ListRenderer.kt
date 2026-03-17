@@ -23,7 +23,7 @@ fun DomListBlock(
     list: ListBlock,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     Column(modifier = modifier) {
         list.children.forEachIndexed { index, child ->
@@ -59,7 +59,7 @@ fun DomListItem(
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
     ordinalLabel: String?,
-    onTextSelected: ((SelectedText) -> Unit) = {},
+    onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     Row(modifier = modifier.padding(start = config.listIndent)) {
         if (ordinalLabel != null) {
