@@ -26,7 +26,7 @@ class LibraryViewModel(
     fun loadLibraries() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val libraries = libraryService.loadLibraries().sortedByDescending { it.name }
+            val libraries = libraryService.loadLibraries().sortedBy { it.name }
             _uiState.update { it.copy(libraries = libraries.toMutableList(), isLoading = false) }
         }
     }

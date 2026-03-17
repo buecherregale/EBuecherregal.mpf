@@ -31,7 +31,7 @@ class LibraryDetailViewModel(
 
             val books = _uiState.value.library.bookIds.map { id ->
                 bookService.readData(id)
-            }
+            }.sortedBy { it.metadata.title }
 
             _uiState.update { it.copy(books = books, isLoading = false) }
         }
