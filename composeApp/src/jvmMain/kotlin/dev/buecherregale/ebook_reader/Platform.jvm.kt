@@ -2,6 +2,8 @@ package dev.buecherregale.ebook_reader
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.intl.Locale
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import dev.buecherregale.ebook_reader.core.service.filesystem.AppDirectory
@@ -20,6 +22,7 @@ import org.koin.dsl.module
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.text.BreakIterator
 
 class JVMPlatform : Platform {
     override val name: String = "Java ${System.getProperty("java.version")}"
@@ -77,4 +80,18 @@ actual fun dynamicColorSchemeDark(): ColorScheme {
 
 actual fun supportsDynamicColorScheme(): Boolean {
     return false
+}
+
+actual fun getWordBoundaryAt(
+    text: String,
+    offset: Int,
+    locale: Locale
+): TextRange? {
+    val iterator = BreakIterator.getWordInstance(locale.platformLocale)
+    iterator.setText(text)
+    val end = iterator.following(offset)
+    if (end == BreakIterator.DONE) return null
+    val start = iterator.previous()
+    if (start == end || text.substring(start, end).isBlank()) return null
+    return TextRange(start, end)
 }

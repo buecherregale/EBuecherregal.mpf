@@ -2,6 +2,8 @@ package dev.buecherregale.ebook_reader
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.intl.Locale
 import app.cash.sqldelight.db.SqlDriver
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileService
 import io.ktor.utils.io.*
@@ -36,4 +38,12 @@ actual fun dynamicColorSchemeDark(): ColorScheme {
 
 actual fun supportsDynamicColorScheme(): Boolean {
     return false
+}
+
+actual fun getWordBoundaryAt(
+    text: String,
+    offset: Int,
+    locale: Locale
+): TextRange? {
+    TODO("Not yet implemented")
 }

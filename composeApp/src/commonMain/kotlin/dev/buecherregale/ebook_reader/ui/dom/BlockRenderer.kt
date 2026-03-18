@@ -96,7 +96,7 @@ fun DomParagraph(
 
     Column(modifier = modifier) {
         if (inlineNodes.isNotEmpty()) {
-            InlineContentRenderer(nodes = inlineNodes, config = config, onTextSelected = onTextSelected)
+            InlineContentRenderer(book = book, nodes = inlineNodes, config = config, onTextSelected = onTextSelected)
         }
         if (blockNodes.isEmpty())
             Box(modifier = Modifier.height(config.paragraphSpacing))
@@ -115,6 +115,7 @@ fun DomParagraph(
  */
 @Composable
 fun DomHeading(
+    book: Book,
     heading: Heading,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
@@ -126,6 +127,11 @@ fun DomHeading(
     )
 
     Column(modifier = modifier.padding(bottom = config.paragraphSpacing)) {
-        InlineContentRenderer(nodes = heading.children, config = headingConfig, onTextSelected = onTextSelected)
+        InlineContentRenderer(
+            book = book,
+            nodes = heading.children,
+            config = headingConfig,
+            onTextSelected = onTextSelected
+        )
     }
 }

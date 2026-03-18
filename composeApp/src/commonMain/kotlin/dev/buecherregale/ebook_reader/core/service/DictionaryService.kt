@@ -27,7 +27,7 @@ class DictionaryService(
     private val importerFactory: DictionaryImporterFactory,
     private val metadataRepository: DictionaryMetadataRepository,
     private val dictionaryRepository: DictionaryRepository,
-    ) {
+) {
     /**
      * Downloads the dictionary, transforming it into the [dev.buecherregale.ebook_reader.core.domain.Dictionary] form and saving it to [.getDictionaryFile].
      * <br></br>
@@ -57,8 +57,9 @@ class DictionaryService(
      * @return the dictionary
      */
     suspend fun open(dictionaryId: Uuid): Dictionary = withContext(ioDispatcher()) {
-             dictionaryRepository.load(dictionaryId)
-                ?: throw IllegalArgumentException("dictionary $dictionaryId does not exist")
+        Logger.i { "opening dictionary $dictionaryId" }
+        dictionaryRepository.load(dictionaryId)
+            ?: throw IllegalArgumentException("dictionary $dictionaryId does not exist")
     }
 
     /**
@@ -140,6 +141,7 @@ class DictionaryService(
             val entry = dictionary.entries[sub]
             if (entry != null) results.add(entry)
         }
+        Logger.d { "Lookup of '$word' yielded ${results.size} results for dictionary ${dictionary.name}" }
         return results
     }
 
