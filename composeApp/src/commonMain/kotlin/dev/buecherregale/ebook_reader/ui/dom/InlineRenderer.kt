@@ -196,9 +196,9 @@ internal fun InlineContentRenderer(
                         }
 
                         resolveSelectedText(
-                            tapPos = tapPos,
                             layoutResult = lr,
                             fullText = annotated.text,
+                            wordRange = wordRange,
                             localToScreen = coords::localToWindow,
                         )?.let {
                             Logger.d { "selected text: $it" }
@@ -245,24 +245,22 @@ private fun Rect.union(other: Rect) = Rect(
 )
 
 /**
- * Resolves the word at [tapPos] inside [layoutResult] and returns a
+ * Resolves the word in the [wordRange] inside [layoutResult] and returns a
  * [SelectedText] with screen-space bounds, or `null` if the tap didn't
  * land on a non-blank word.
  *
- * @param tapPos           Position of the tap in local (composable) coordinates.
  * @param layoutResult     The [TextLayoutResult] from the [Text] composable.
  * @param fullText         The plain [String] backing the annotated string.
+ * @param wordRange        The [TextRange] containing the word to select.
  * @param localToScreen    Converts a local [Offset] to screen coordinates.
  *                         Supply `LayoutCoordinates::localToWindow`.
  */
 private fun resolveSelectedText(
-    tapPos: Offset,
     layoutResult: TextLayoutResult,
     fullText: String,
+    wordRange: TextRange,
     localToScreen: (Offset) -> Offset,
 ): SelectedText? {
-    val charOffset = layoutResult.getOffsetForPosition(tapPos)
-    val wordRange = layoutResult.getWordBoundary(charOffset)
 
     if (wordRange.start >= wordRange.end) return null
 
