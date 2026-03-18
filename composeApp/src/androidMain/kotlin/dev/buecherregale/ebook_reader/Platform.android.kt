@@ -135,12 +135,13 @@ actual fun getWordBoundaryAt(
     offset: Int,
     locale: Locale
 ): TextRange? {
+    if (offset !in text.indices) return null
     val iterator = BreakIterator.getWordInstance(locale.platformLocale)
     iterator.setText(text)
+
+    val start = iterator.preceding(offset + 1)
     val end = iterator.following(offset)
-    if (end == BreakIterator.DONE) return null
-    val start = iterator.previous()
-    // BreakIterator also stops at punctuation/spaces — filter those out
-    if (start == end || text.substring(start, end).isBlank()) return null
+
+    if (start == BreakIterator.DONE || end == BreakIterator.DONE) return null
     return TextRange(start, end)
 }
