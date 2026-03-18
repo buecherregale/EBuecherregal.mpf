@@ -12,6 +12,7 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(DelicateCoroutinesApi::class, ExperimentalUuidApi::class)
 fun main() = application {
+    Logger.setMinSeverity(Severity.Verbose)
     Logger.setLogWriters(
         Slf4JLogWriter()
     )

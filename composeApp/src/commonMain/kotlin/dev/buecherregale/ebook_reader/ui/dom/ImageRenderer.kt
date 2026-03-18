@@ -69,6 +69,7 @@ fun DomImageBlock(
             Spacer(modifier = Modifier.height(config.listItemSpacing))
             val captionConfig = config.copy(baseTextSize = (config.baseTextSize.value * 0.85f).sp)
             InlineContentRenderer(
+                book = book,
                 nodes = block.caption.filterIsInstance<Text>(),
                 config = captionConfig,
                 onTextSelected = onTextSelected,

@@ -73,7 +73,12 @@ fun DomListItem(
         val (inlineNodes, blockNodes) = item.children.partition { it is Inline }
         Column(modifier = Modifier.weight(1f)) {
             if (inlineNodes.isNotEmpty()) {
-                InlineContentRenderer(nodes = inlineNodes, config = config, onTextSelected = onTextSelected)
+                InlineContentRenderer(
+                    book = book,
+                    nodes = inlineNodes,
+                    config = config,
+                    onTextSelected = onTextSelected,
+                )
             }
             blockNodes.forEach { child ->
                 DomNode(book = book, node = child, config = config, onTextSelected = onTextSelected)

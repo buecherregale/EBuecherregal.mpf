@@ -16,8 +16,11 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import co.touchlab.kermit.Logger
 import dev.buecherregale.ebook_reader.core.dom.*
 import dev.buecherregale.ebook_reader.core.dom.TextStyle
+import dev.buecherregale.ebook_reader.core.domain.Book
+import dev.buecherregale.ebook_reader.getWordBoundaryAt
 
 /**
  * Renders a [Text] node as [Text] applying the modifier.
@@ -68,12 +71,19 @@ fun DomText(
  */
 @Composable
 fun DomLink(
+    book: Book,
     link: Link,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
     onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
-    InlineContentRenderer(nodes = listOf(link), config = config, modifier = modifier, onTextSelected = onTextSelected)
+    InlineContentRenderer(
+        book = book,
+        nodes = listOf(link),
+        config = config,
+        modifier = modifier,
+        onTextSelected = onTextSelected,
+    )
 }
 
 /**
@@ -83,12 +93,19 @@ fun DomLink(
  */
 @Composable
 fun DomRuby(
+    book: Book,
     ruby: Ruby,
     config: RenderingConfig = RenderingConfig.Default,
     modifier: Modifier = Modifier,
     onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
-    InlineContentRenderer(nodes = listOf(ruby), config = config, modifier = modifier, onTextSelected = onTextSelected)
+    InlineContentRenderer(
+        book = book,
+        nodes = listOf(ruby),
+        config = config,
+        modifier = modifier,
+        onTextSelected = onTextSelected,
+    )
 }
 
 /**
@@ -108,6 +125,7 @@ typealias HighlightDismisser = () -> Unit
  */
 @Composable
 internal fun InlineContentRenderer(
+    book: Book,
     nodes: List<Node>,
     config: RenderingConfig,
     modifier: Modifier = Modifier,
@@ -153,13 +171,16 @@ internal fun InlineContentRenderer(
                             .getStringAnnotations(LINK_TAG, offset, offset)
                             .firstOrNull()
                         if (link != null) {
+                            Logger.d { "opening link: ${link.item}" }
                             highlightedRange = null
                             uriHandler.openUri(link.item)
                             return@detectTapGestures
                         }
 
                         val coords = coordinates ?: return@detectTapGestures
-                        val wordRange = lr.getWordBoundary(offset)
+                        val wordRange =
+                            getWordBoundaryAt(annotated.text, offset, book.metadata.language)
+                                ?: return@detectTapGestures
 
                         if (wordRange.start >= wordRange.end
                             || annotated.text.substring(wordRange.start, wordRange.end).isBlank()
@@ -180,6 +201,7 @@ internal fun InlineContentRenderer(
                             fullText = annotated.text,
                             localToScreen = coords::localToWindow,
                         )?.let {
+                            Logger.d { "selected text: $it" }
                             onTextSelected(it, dismissHighlight)
                         }
                     },
