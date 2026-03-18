@@ -1,6 +1,6 @@
 [versions]
-projectVersion = "1.1.0"
-projectVersionCode = "8"
+projectVersion = "1.1.1"
+projectVersionCode = "9"
 
 agp = "8.12.3"
 
