@@ -1,54 +1,45 @@
 name: Release Build
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
-
-env:
-  JAVA_VERSION: '21'
-  VERSION_FILE: gradle/libs.versions.toml
-
-permissions:
-  contents: write
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.1.3)'
+        required: true
 
 jobs:
   update-version:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.PRIVATE_ACCESS_TOKEN }}
           ref: main
 
-      - name: Compute version values
-        shell: bash
+      - name: Bump version files
         run: |
-          TAG_VER=${{ github.ref_name }}
-          version="${TAG_VER#v}"
-          echo "VERSION=$version" >> $GITHUB_ENV
-
+          VERSION="${{ inputs.version }}"
           current_code=$(grep -E '^projectVersionCode =' "$VERSION_FILE" | sed -E 's/[^0-9]*//g')
-          version_code=$((current_code + 1))
-          echo "VERSION_CODE=$version_code" >> $GITHUB_ENV
+          VERSION_CODE=$((current_code + 1))
 
-          echo "New Version : $version"
-          echo "New Code    : $version_code"
-
-      - name: Write version into file
-        shell: bash
-        run: |
           sed -i "s/^projectVersion = \".*\"/projectVersion = \"$VERSION\"/" "$VERSION_FILE"
           sed -i "s/^projectVersionCode = \".*\"/projectVersionCode = \"$VERSION_CODE\"/" "$VERSION_FILE"
 
-      - name: Commit & push version bump
-        shell: bash
+          echo "VERSION=v$VERSION" >> $GITHUB_ENV
+
+      - name: Commit, tag, and push
+        id: tag
         run: |
           git config user.name  "ci bot"
           git config user.email "ci@local"
           git add "$VERSION_FILE"
-          git commit -m "bump version to $VERSION"
+          git commit -m "bump version to ${{ inputs.version }}"
+          git tag "v${{ inputs.version }}"
           git push origin HEAD:main
+          git push origin "v${{ inputs.version }}"
+          echo "tag=v${{ inputs.version }}" >> $GITHUB_OUTPUT
 
   create-release:
     runs-on: ubuntu-latest
@@ -74,7 +65,7 @@ jobs:
         include:
           - platform: linux-debian
             runs-on: ubuntu-latest
-            targets: ["Deb", "AppImage"]
+            targets: [ "Deb", "AppImage" ]
           # no runners atm
           # - platform: windows
           #   runs-on: windows-latest
@@ -180,8 +171,8 @@ jobs:
         env:
           ANDROID_KEYSTORE_PATH: keystore.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          ANDROID_KEY_PASSWORD:      ${{ secrets.KEY_PASSWORD }}
-          ANDROID_KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: ./gradlew :androidApp:bundleRelease :androidApp:assembleRelease --stacktrace
 
       - name: Stage artifacts
