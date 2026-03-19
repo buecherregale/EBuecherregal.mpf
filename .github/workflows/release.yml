@@ -58,7 +58,8 @@ jobs:
         run: |
           gh release create "${{ needs.update-version.outputs.tag }}" \
             --repo "${{ github.repository }}" \
-            --title "Release ${{ needs.update-version.outputs.tag }}"
+            --title "Release ${{ needs.update-version.outputs.tag }}" \
+            --generate-notes
 
   # ------------------------------------------ Desktop ---------------------------------------------------
 
