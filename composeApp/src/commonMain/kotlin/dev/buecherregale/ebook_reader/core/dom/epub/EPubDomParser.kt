@@ -28,8 +28,7 @@ import nl.adaptivity.xmlutil.serialization.XML
 import nl.adaptivity.xmlutil.serialization.XmlConfig
 
 /**
- * Parser for EPub books.
- * A EPub file is a zip folder following a specific structure.
+ * Parser for EPub books. A EPub file is a zip folder following a specific structure.
  *
  * Parses chapter by chapter opening and validating the zip content.
  *
@@ -37,10 +36,7 @@ import nl.adaptivity.xmlutil.serialization.XmlConfig
  */
 object EPubDomParser : BookParser {
 
-    override suspend fun canParse(
-        file: FileRef,
-        fileService: FileService
-    ): Boolean {
+    override suspend fun canParse(file: FileRef, fileService: FileService): Boolean {
         try {
             val zip = fileService.readZip(file)
             val entry = zip.getEntry(EPubConstants.MIMETYPE)
@@ -48,10 +44,7 @@ object EPubDomParser : BookParser {
                 Logger.i { "cannot parse epub: ${EPubConstants.MIMETYPE} file not found" }
                 return false
             }
-            if (entry.open()
-                    .readByteArray()
-                    .decodeToString()
-                    .trim() != EPubConstants.CONTENT_TYPE
+            if (entry.open().readByteArray().decodeToString().trim() != EPubConstants.CONTENT_TYPE
             ) {
                 Logger.i { "cannot parse epub: content-type is invalid" }
                 return false
@@ -66,8 +59,10 @@ object EPubDomParser : BookParser {
     }
 
     /**
-     * Parses the EPub zip file by reading the metadata providing XMLs before reading the `spine` of the book, parsing the chapters.
-     * Internal resources are saved to the [dev.buecherregale.ebook_reader.core.dom.ResourceRepository]. Links like image sources or to different chapters/headings are rewritten to fit the DOM structure.
+     * Parses the EPub zip file by reading the metadata providing XMLs before reading the `spine` of
+     * the book, parsing the chapters. Internal resources are saved to the
+     * [dev.buecherregale.ebook_reader.core.dom.ResourceRepository]. Links like image sources or to
+     * different chapters/headings are rewritten to fit the DOM structure.
      *
      * The resulting document only has [Chapter] as children.
      *
@@ -75,109 +70,108 @@ object EPubDomParser : BookParser {
      * @see [Chapter]
      */
     override suspend fun parse(
-        file: FileRef,
-        fileService: FileService,
-        resourceRepository: ResourceRepository,
-        targetId: String
+            file: FileRef,
+            fileService: FileService,
+            resourceRepository: ResourceRepository,
+            targetId: String
     ): Pair<Book, Document> {
         val zip = fileService.readZip(file)
         val container = readContainer(zip)
-        val pkg = readPackage(zip, container.rootfiles.rootfile[0].fullPath)
-        val chapters = pkg.spine.itemRefs
-            .map { EPubXmlResolver.resolveId(pkg, it.idref) }
-            .map {
-                readChapter(
-                    zip = zip,
-                    pathToChapter = it.href
-                )
-            }
-            .map { it as Node }
-            .toMutableList()
-        val document = Document(
-            id = targetId,
-            children = chapters
-        )
+        val pkgPath = container.rootfiles.rootfile[0].fullPath
+        val pkg = readPackage(zip, pkgPath)
+
+        val chapters =
+                pkg.spine
+                        .itemRefs
+                        .map { EPubXmlResolver.resolveId(pkg, it.idref) }
+                        .map {
+                            readChapter(
+                                    zip = zip,
+                                    pathToChapter = EPubXmlResolver.resolvePath(pkgPath, it.href)
+                            )
+                        }
+                        .map { it as Node }
+                        .toMutableList()
+        val document = Document(id = targetId, children = chapters)
         postProcessors(zip, resourceRepository).forEach { it.process(document) }
 
-        return Book(
-            id = targetId,
-            progress = 0.0,
-            metadata = readMetadata(pkg)
-        ) to document
+        return Book(id = targetId, progress = 0.0, metadata = readMetadata(pkg)) to document
     }
 
-    override suspend fun parseCover(
-        file: FileRef,
-        fileService: FileService
-    ): ByteArray? {
+    override suspend fun parseCover(file: FileRef, fileService: FileService): ByteArray? {
         val zip = fileService.readZip(file)
         val container = readContainer(zip)
-        val pkg = readPackage(zip, container.rootfiles.rootfile[0].fullPath)
+        val pkgPath = container.rootfiles.rootfile[0].fullPath
+        val pkg = readPackage(zip, pkgPath)
 
-        return pkg.manifest.items
-            .filter { (id, _, _) -> id == EPubConstants.COVER_XML_ID }
-            .mapNotNull { item -> zip.getEntry(item.href) }
-            .map { it.open().readByteArray() }
-            .firstOrNull()
+        return pkg.manifest
+                .items
+                .filter { (id, _, _) -> id == EPubConstants.COVER_XML_ID }
+                .mapNotNull { item -> zip.getEntry(EPubXmlResolver.resolvePath(pkgPath, item.href)) }
+                .map { it.open().readByteArray() }
+                .firstOrNull()
     }
 
     @OptIn(ExperimentalXmlUtilApi::class)
-    private val generalXmlParser = XML.v1.invoke {
-        policy = DefaultXmlSerializationPolicy {
-            unknownChildHandler = XmlConfig.IGNORING_UNKNOWN_CHILD_HANDLER
-        }
-    }
+    private val generalXmlParser =
+            XML.v1.invoke {
+                policy = DefaultXmlSerializationPolicy {
+                    unknownChildHandler = XmlConfig.IGNORING_UNKNOWN_CHILD_HANDLER
+                }
+            }
 
-    private fun postProcessors(zip: ZipFileRef, resourceRepository: ResourceRepository): List<PostProcessor> =
-        listOf(LinkPostProcessor, ImagePostProcessor(zip, resourceRepository))
+    private fun postProcessors(
+            zip: ZipFileRef,
+            resourceRepository: ResourceRepository
+    ): List<PostProcessor> = listOf(LinkPostProcessor, ImagePostProcessor(zip, resourceRepository))
 
     private suspend fun readContainer(zip: ZipFileRef): Container {
-        val xmlEntry = zip.getEntry(EPubConstants.CONTAINER_XML)
-            ?: throw EPubSyntaxException("${EPubConstants.CONTAINER_XML} is missing")
-        val xmlString = xmlEntry.open().use {
-            it.readByteArray().decodeToString()
-        }
+        val xmlEntry =
+                zip.getEntry(EPubConstants.CONTAINER_XML)
+                        ?: throw EPubSyntaxException("${EPubConstants.CONTAINER_XML} is missing")
+        val xmlString = xmlEntry.open().use { it.readByteArray().decodeToString() }
         return generalXmlParser.decodeFromString(xmlString)
     }
 
     private suspend fun readPackage(zip: ZipFileRef, opfPath: String): Package {
-        val xmlEntry = zip.getEntry(opfPath)
-            ?: throw EPubSyntaxException("rootfile $opfPath not found")
+        val xmlEntry =
+                zip.getEntry(opfPath) ?: throw EPubSyntaxException("rootfile $opfPath not found")
 
-        val xmlString = xmlEntry.open().use {
-            it.readByteArray().decodeToString()
-        }
+        val xmlString = xmlEntry.open().use { it.readByteArray().decodeToString() }
 
         return generalXmlParser.decodeFromString(xmlString)
     }
 
     private suspend fun readChapter(zip: ZipFileRef, pathToChapter: String): Chapter {
-        val entry = zip.getEntry(pathToChapter)
-            ?: throw EPubParseException("Missing chapter item at '$pathToChapter'")
+        val entry =
+                zip.getEntry(pathToChapter)
+                        ?: throw EPubParseException("Missing chapter item at '$pathToChapter'")
 
         val xmlString = entry.open().readByteArray().decodeToString()
-        val document = XmlDomParser.parse(
-            xml = xmlString,
-        )
+        val document =
+                XmlDomParser.parse(
+                        xml = xmlString,
+                )
 
         return Chapter(
-            id = document.id,
-            children = document.children,
-            originalZipPath = pathToChapter,
-            originalLinkAnchor = pathToChapter.substringAfterLast("/", pathToChapter)
+                id = document.id,
+                children = document.children,
+                originalZipPath = pathToChapter,
+                originalLinkAnchor = pathToChapter.substringAfterLast("/", pathToChapter)
         )
     }
 
     private fun readMetadata(pkg: Package): BookMetadata {
-        val isbn = pkg.metadata.identifiers
-            .find { it.scheme == EPubConstants.PREFERRED_IDENTIFIER_SCHEME }
-            ?.value
-            ?: ""
+        val isbn =
+                pkg.metadata.identifiers
+                        .find { it.scheme == EPubConstants.PREFERRED_IDENTIFIER_SCHEME }
+                        ?.value
+                        ?: ""
         return BookMetadata(
-            title = pkg.metadata.title,
-            language = normalizeLanguage(pkg.metadata.language),
-            author = pkg.metadata.creator.first().name,
-            isbn = isbn
+                title = pkg.metadata.title,
+                language = normalizeLanguage(pkg.metadata.language),
+                author = pkg.metadata.creator.first().name,
+                isbn = isbn
         )
     }
 }
@@ -187,95 +181,112 @@ internal interface PostProcessor {
 }
 
 internal class ImagePostProcessor(
-    private val zip: ZipFileRef,
-    private val resourceRepository: ResourceRepository
+        private val zip: ZipFileRef,
+        private val resourceRepository: ResourceRepository
 ) : PostProcessor {
     override suspend fun process(document: Document) {
         val images: MutableSet<Pair<Chapter, Image>> = mutableSetOf()
         document.children.forEach { child ->
-            val chapter = child as? Chapter
-                ?: throw EPubSyntaxException("non chapter child of epub document: ${child.id}, anchor: ${child.originalLinkAnchor}")
+            val chapter =
+                    child as? Chapter
+                            ?: throw EPubSyntaxException(
+                                    "non chapter child of epub document: ${child.id}, anchor: ${child.originalLinkAnchor}"
+                            )
             chapter.children.forEach {
-                it.traverse { node ->
-                    if (node is Image) images.add(chapter to node)
-                }
+                it.traverse { node -> if (node is Image) images.add(chapter to node) }
             }
         }
         val semaphore = Semaphore(8)
 
         coroutineScope {
-            images.map { image ->
-                async {
-                    semaphore.withPermit {
-                        val path = EPubXmlResolver.resolvePath(image.first.originalZipPath, image.second.src)
-                        val entry = zip.getEntry(path)
-                            ?: throw EPubParseException("missing image at '$path'")
+            images
+                    .map { image ->
+                        async {
+                            semaphore.withPermit {
+                                val path =
+                                        EPubXmlResolver.resolvePath(
+                                                image.first.originalZipPath,
+                                                image.second.src
+                                        )
+                                val entry =
+                                        zip.getEntry(path)
+                                                ?: throw EPubParseException(
+                                                        "missing image at '$path'"
+                                                )
 
-                        val bytes = entry.open().readByteArray()
-                        resourceRepository.save(image.second.id, bytes)
-                        image.second.src = DomUrl.Resource(DomPath(listOf(image.second.id))).toString()
+                                val bytes = entry.open().readByteArray()
+                                resourceRepository.save(image.second.id, bytes)
+                                image.second.src =
+                                        DomUrl.Resource(DomPath(listOf(image.second.id))).toString()
+                            }
+                        }
                     }
-                }
-            }.awaitAll()
+                    .awaitAll()
         }
     }
 }
 
 internal object LinkPostProcessor : PostProcessor {
     override suspend fun process(document: Document) {
-        val links: MutableSet<Link> = mutableSetOf()
-        document.traverse { node ->
-            if (node is Link)
-                links.add(node)
+        val links: MutableSet<Pair<Chapter, Link>> = mutableSetOf()
+        document.children.forEach { child ->
+            val chapter =
+                    child as? Chapter
+                            ?: throw EPubSyntaxException(
+                                    "non chapter child of epub document: ${child.id}, anchor: ${child.originalLinkAnchor}"
+                            )
+            chapter.traverse { node -> if (node is Link) links.add(chapter to node) }
         }
-        links.forEach { link ->
-            val path = findPathToLink(document, link)
-            if (path != null)
-                link.target = pathToUrl(path)
+        links.forEach { (chapter, link) ->
+            val path = findPathToLink(document, chapter, link)
+            if (path != null) link.target = pathToUrl(path)
         }
     }
+
+    private val externalLink = Regex("^[a-zA-Z][a-zA-Z0-9+.-]*:")
+    private val linkTarget = Regex("^(?<chapter>[^#]*)(#(?<anchor>.*))?$")
 
     /**
-     * Finds the path to the link by stepping through nodes and checking their [Node.originalLinkAnchor].
+     * Finds the path to the link by stepping through nodes and checking their
+     * [Node.originalLinkAnchor].
      *
-     * Requires that [Link.target] is of form `chapterFile?#originalLinkAnchor?` of an element.
-     * Also [Chapter.originalLinkAnchor] has to be the `chapterFile`.
+     * Requires that [Link.target] is of form `chapterFile?#originalLinkAnchor?` of an element. The
+     * `chapterFile` is resolved relative to the zip path of the chapter containing the link and
+     * matched against [Chapter.originalZipPath]. An empty `chapterFile` refers to the source
+     * chapter itself.
      *
      * @param document The document to traverse
+     * @param source the chapter the link is contained in
      * @param link the link to find
-     * @return the path to the link or `null` if the target does not match the requirement
+     * @return the path to the link or `null` if the target is external or does not match the
+     * requirement
      */
-    private fun findPathToLink(document: Document, link: Link): ArrayDeque<String>? {
+    private fun findPathToLink(document: Document, source: Chapter, link: Link): ArrayDeque<String>? {
+        if (externalLink.containsMatchIn(link.target)) return null
+        val matchResult = linkTarget.find(link.target) ?: return null
+        val chapterFile = matchResult.groups["chapter"]?.value.orEmpty()
+        val anchor = matchResult.groups["anchor"]?.value?.takeIf { it.isNotEmpty() }
+
+        val chapterNode =
+                if (chapterFile.isEmpty()) source
+                else {
+                    val zipPath = EPubXmlResolver.resolvePath(source.originalZipPath, chapterFile)
+                    document.children.filterIsInstance<Chapter>().find {
+                        it.originalZipPath == zipPath
+                    }
+                            ?: throw EPubParseException(
+                                    "no chapter for link target '${link.target}' (resolved '$zipPath') found"
+                            )
+                }
+
         val path = ArrayDeque<String>()
         path.addFirst(document.id)
-        Regex("^(?<chapter>[^#]*)(#(?<anchor>.+))?$").find(link.target)?.let { matchResult ->
-            if (matchResult.groups["chapter"] == null && matchResult.groups["anchor"] == null) // both null means no match
-                return null
-            val chapter = matchResult.groups["chapter"]?.value
-                ?: (findChapterToLink(document, matchResult.groups["anchor"]!!.value)?.id
-                    ?: throw EPubParseException("no chapter for link target '${link.target}' found"))
-            val chapterNode = document.children.find { it.originalLinkAnchor == chapter }
-                ?: throw EPubParseException("no chapter for link target '${link.target}' found")
+        if (anchor == null) {
             path.addLast(chapterNode.id)
-            if (matchResult.groups["anchor"] == null)
-                return path
-            path.removeLast()
-            val found = findLinkTarget(chapterNode, matchResult.groups["anchor"]!!.value, path)
-            if (found)
-                return path
+            return path
         }
+        if (findLinkTarget(chapterNode, anchor, path)) return path
         throw EPubParseException("no path for link target '${link.target}' found")
-    }
-
-    private fun findChapterToLink(document: Document, targetAnchor: String): Chapter? {
-        var found: Chapter? = null
-        document.children.forEach { chapter ->
-            chapter.traverse { node ->
-                if (node.originalLinkAnchor == targetAnchor)
-                    found = chapter as Chapter
-            }
-        }
-        return found
     }
 
     private fun findLinkTarget(node: Node, target: String, path: ArrayDeque<String>): Boolean {
@@ -284,10 +295,7 @@ internal object LinkPostProcessor : PostProcessor {
             return true
         }
         if (node is Branch)
-            node.children.forEach {
-                if (findLinkTarget(it, target, path))
-                    return true
-            }
+                node.children.forEach { if (findLinkTarget(it, target, path)) return true }
         path.removeLast()
         return false
     }
@@ -300,7 +308,8 @@ internal object LinkPostProcessor : PostProcessor {
 internal object EPubXmlResolver {
 
     /**
-     * Finds an item in the [dev.buecherregale.ebook_reader.core.dom.epub.xml_structs.Manifest] with matching id.
+     * Finds an item in the [dev.buecherregale.ebook_reader.core.dom.epub.xml_structs.Manifest] with
+     * matching id.
      *
      * @param pkg the opf package to search in
      * @param xmlId the id of the item
@@ -309,11 +318,12 @@ internal object EPubXmlResolver {
      */
     fun resolveId(pkg: Package, xmlId: String): Item {
         return pkg.manifest.items.find { (itemId, _, _) -> xmlId == itemId }
-            ?: throw EPubParseException("could not find item '$xmlId' in manifest")
+                ?: throw EPubParseException("could not find item '$xmlId' in manifest")
     }
 
     /**
-     * Resolves the `href` path as a relative path to the `base`, following a unix fs style, '/' separated path.
+     * Resolves the `href` path as a relative path to the `base`, following a unix fs style, '/'
+     * separated path.
      *
      * Respects `..` or `.` in the `href`.
      *
@@ -322,10 +332,11 @@ internal object EPubXmlResolver {
      * @return the resolved path
      */
     fun resolvePath(base: String, href: String): String {
-        val baseParts = base.substringBeforeLast('/', "")
-            .split('/')
-            .filter { it.isNotEmpty() }
-            .toMutableList()
+        val baseParts =
+                base.substringBeforeLast('/', "")
+                        .split('/')
+                        .filter { it.isNotEmpty() }
+                        .toMutableList()
         val refParts = href.split('/')
 
         for (part in refParts) {
@@ -338,3 +349,4 @@ internal object EPubXmlResolver {
         return baseParts.joinToString("/")
     }
 }
+

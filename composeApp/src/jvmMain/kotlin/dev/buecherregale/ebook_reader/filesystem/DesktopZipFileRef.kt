@@ -6,8 +6,9 @@ import java.io.IOException
 import java.util.zip.ZipFile
 
 data class DesktopZipFileRef(val zipFile: ZipFile) : ZipFileRef {
-    override fun getEntry(pathInZip: String): ZipEntryRef {
-        return DesktopZipEntryRef(zipFile, zipFile.getEntry(pathInZip))
+    override fun getEntry(pathInZip: String): ZipEntryRef? {
+        val entry = zipFile.getEntry(pathInZip) ?: return null
+        return DesktopZipEntryRef(zipFile, entry)
     }
 
     @Throws(IOException::class)
