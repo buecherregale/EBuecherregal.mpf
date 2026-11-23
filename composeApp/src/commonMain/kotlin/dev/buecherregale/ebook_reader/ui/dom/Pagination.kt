@@ -92,7 +92,9 @@ fun Document.paginate(
             when (val split = toWork.split(
                 budget = pageHeightPx - builder.consumedHeightPx,
                 heightOf = { nodeHeights[it.id] ?: 0 },
-                heightOfEmpty = { branchHeights[it.id] ?: 0 })) {
+                heightOfEmpty = { branchHeights[it.id] ?: 0 },
+                // on an empty page, an oversized leaf has to be placed anyway or we loop forever
+                forceFirstLeaf = builder.current.isEmpty())) {
                 is SplitResult.All -> {
                     builder.add(toWork, height)
                     break
@@ -200,12 +202,15 @@ private sealed interface SplitResult {
  * @param budget        The height budget to fit the branch into.
  * @param heightOf      Function to obtain the height of any node. For branches this should equal `heightOfEmpty(branch) + children.map { heightOf(it) }.sum()`.
  * @param heightOfEmpty Function to obtain the height of a [Branch] without its children, as if it had none.
+ * @param forceFirstLeaf If `true`, the first [Leaf] is always included, even if it exceeds the [budget].
+ *                      Required when splitting onto an empty page, otherwise an oversized leaf could never be placed.
  * @return              A [SplitResult] describing the fitting part of the branch.
  */
 private fun Branch.split(
     budget: Int,
     heightOf: (Node) -> Int,
     heightOfEmpty: (Branch) -> Int,
+    forceFirstLeaf: Boolean = false,
 ): SplitResult {
     val height = heightOf(this)
     if (height < budget)
@@ -220,7 +225,7 @@ private fun Branch.split(
     children.forEach { child ->
         if (child is Leaf) {
             val childHeight = heightOf(child)
-            if (childHeight < remainingBudget) {
+            if (childHeight < remainingBudget || (forceFirstLeaf && fittingChildren.isEmpty())) {
                 fittingChildren += child
                 toFit -= child
                 remainingBudget -= childHeight
@@ -234,7 +239,7 @@ private fun Branch.split(
             }
         }
         child as Branch
-        when (val result = child.split(remainingBudget, heightOf, heightOfEmpty)) {
+        when (val result = child.split(remainingBudget, heightOf, heightOfEmpty, forceFirstLeaf && fittingChildren.isEmpty())) {
             is SplitResult.None -> {
                 return if (fittingChildren.isEmpty()) {
                     SplitResult.None()
