@@ -10,6 +10,7 @@ import dev.buecherregale.ebook_reader.core.service.LibraryService
 import dev.buecherregale.ebook_reader.core.service.filesystem.FileRef
 import dev.buecherregale.ebook_reader.ui.util.encodeToByteArray
 import dev.buecherregale.ebook_reader.ui.util.generateLibraryImage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -37,12 +38,24 @@ class LibraryDetailViewModel(
         }
     }
 
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
+
     fun importBook(path: String) {
         val ref = FileRef(path)
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, error = null) }
 
-            val book = bookService.importBook(ref)
+            val book = try {
+                bookService.importBook(ref)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.e(e) { "import of '$path' failed" }
+                _uiState.update { it.copy(isLoading = false, error = "Could not import book: ${e.message ?: e::class.simpleName}") }
+                return@launch
+            }
             libraryService.addBook(_uiState.value.library.id, book.id)
 
             _uiState.update {
@@ -69,5 +82,6 @@ class LibraryDetailViewModel(
 data class LibraryDetailUiState(
     var library: Library,
     val books: List<Book> = emptyList(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val error: String? = null,
 )

@@ -36,6 +36,9 @@ class BookService(
      *
      * This method may run for quite some time, depending on the format and size of the book.
      *
+     * If the import fails, everything written for the book so far is removed again (best effort)
+     * and the exception is rethrown.
+     *
      * @param bookFile the book file(s)
      *
      * @return the book instance with metadata
@@ -45,7 +48,16 @@ class BookService(
         Logger.i { "importing book from '$bookFile'" }
 
         val bookId = Uuid.generateV4().toString()
+        try {
+            return importBook(bookFile, bookId)
+        } catch (e: Throwable) {
+            Logger.e(e) { "failed to import book from '$bookFile', cleaning up" }
+            cleanUpImport(bookId)
+            throw e
+        }
+    }
 
+    private suspend fun importBook(bookFile: FileRef, bookId: String): Book {
         val parser = BookParserRegistry.applyDefault().get(bookFile, fileService)
         val book = parser.parse(
             file = bookFile,
@@ -64,6 +76,22 @@ class BookService(
         Logger.i("imported book '${book.first.metadata.title}' with id ${book.first.id}")
 
         return book.first
+    }
+
+    /**
+     * Removes all data stored for the book [bookId]. Errors are ignored, as the data might not exist.
+     */
+    private suspend fun cleanUpImport(bookId: String) {
+        runCatching { repository.delete(bookId) }
+        runCatching { fileRepository.delete(bookId) }
+        runCatching { coverRepository.delete(bookId) }
+        val resourceDir = fileService.getAppDirectory(AppDirectory.DATA).resolve("books").resolve(bookId)
+        suspend fun deleteRecursively(file: FileRef) {
+            runCatching { fileService.listChildren(file) }.getOrNull()?.forEach { deleteRecursively(it) }
+            runCatching { fileService.delete(file) }
+        }
+        if (runCatching { fileService.exists(resourceDir) }.getOrDefault(false))
+            deleteRecursively(resourceDir)
     }
 
     /**

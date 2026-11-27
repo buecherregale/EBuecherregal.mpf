@@ -114,6 +114,13 @@ fun DomRuby(
 typealias HighlightDismisser = () -> Unit
 
 /**
+ * Receives the [TextLayoutResult] of inline content, keyed by the id of the node owning it (see `ownerId` of [InlineContentRenderer]).
+ *
+ * Provided during measurement to collect [InlineLayout]s for pagination. `null` (default) disables recording.
+ */
+val LocalInlineLayoutRecorder = staticCompositionLocalOf<((String, TextLayoutResult) -> Unit)?> { null }
+
+/**
  * Renders inline [Node]s as a single flowing text, handling link taps correctly.
  *
  * Non-inline nodes in [nodes] are ignored.
@@ -122,6 +129,9 @@ typealias HighlightDismisser = () -> Unit
  * Also takes care of:
  * - Selection via [onTextSelected]
  * - Link resolution if text is tagged with [LINK_TAG], using [LocalUriHandler]`.current`.
+ * - Reporting the text layout to [LocalInlineLayoutRecorder], if [ownerId] is given.
+ *
+ * @param ownerId The id of the node owning the inline content, used for [LocalInlineLayoutRecorder].
  */
 @Composable
 internal fun InlineContentRenderer(
@@ -129,9 +139,11 @@ internal fun InlineContentRenderer(
     nodes: List<Node>,
     config: RenderingConfig,
     modifier: Modifier = Modifier,
+    ownerId: String? = null,
     onTextSelected: ((SelectedText, HighlightDismisser) -> Unit) = { _, _ -> },
 ) {
     val uriHandler = LocalUriHandler.current
+    val layoutRecorder = LocalInlineLayoutRecorder.current
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
@@ -211,7 +223,10 @@ internal fun InlineContentRenderer(
                     },
                 )
             },
-        onTextLayout = { layoutResult.value = it },
+        onTextLayout = {
+            layoutResult.value = it
+            if (ownerId != null) layoutRecorder?.invoke(ownerId, it)
+        },
     )
 }
 

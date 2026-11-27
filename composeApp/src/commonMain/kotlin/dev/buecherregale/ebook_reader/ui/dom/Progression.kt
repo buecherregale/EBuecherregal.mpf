@@ -15,12 +15,33 @@ class ContentIndex internal constructor(
     data class Entry(val path: DomPath, val weight: Double, val cumulativeWeightBefore: Double)
 
     // Precomputed for O(1) lookup when a page settles
-    private val fractionByLeafId: Map<String, Double> = entries.associate { entry ->
-        entry.path.peek() to (entry.cumulativeWeightBefore / totalWeight).coerceIn(0.0, 1.0)
+    private val entryByLeafId: Map<String, Entry> = entries.associateBy { it.path.peek() }
+
+    /**
+     * Returns the progress fraction for the leaf with the given [leafId].
+     *
+     * For pieces of split [Text] nodes (see [splitId]), the offset into the text is taken into account.
+     */
+    fun fractionForLeafId(leafId: String): Double? {
+        val (baseId, offset) = parseSplitId(leafId)
+        val entry = entryByLeafId[baseId] ?: return null
+        val weight = entry.cumulativeWeightBefore + offset.toDouble().coerceAtMost(entry.weight)
+        return (weight / totalWeight).coerceIn(0.0, 1.0)
     }
 
-    /** Returns the progress fraction for the leaf with the given [leafId]. */
-    fun fractionForLeafId(leafId: String): Double? = fractionByLeafId[leafId]
+    /**
+     * Returns the id of the leaf at the given progress [fraction].
+     *
+     * Unlike [pathAtFraction], the position inside a [Text] is preserved by returning a [splitId],
+     * which can be resolved to the correct page via [pageIndexForLeafId].
+     */
+    fun leafIdAtFraction(fraction: Double): String? {
+        if (entries.isEmpty()) return null
+        val target = (fraction * totalWeight).coerceIn(0.0, totalWeight)
+        val entry = entries.lastOrNull { it.cumulativeWeightBefore <= target } ?: entries.first()
+        val offset = (target - entry.cumulativeWeightBefore).toInt().coerceIn(0, entry.weight.toInt())
+        return splitId(entry.path.peek(), offset)
+    }
 
     fun pathAtFraction(fraction: Double): DomPath {
         if (entries.isEmpty()) return DomPath()
@@ -54,15 +75,19 @@ fun Page.firstLeafId(): String? {
 }
 
 /**
- * Returns the index of the first page that contains a [Leaf] with [leafId],
+ * Returns the index of the page that contains the [Leaf] with [leafId],
  * or `-1` if not found.
+ *
+ * [leafId] may be a [splitId] of a leaf. As the pages might be split differently from when the id was obtained,
+ * the page with the last piece starting at or before the offset is returned.
  */
 fun List<Page>.pageIndexForLeafId(leafId: String): Int {
-    fun containsLeaf(node: Node): Boolean = when (node) {
-        is Leaf -> node.id == leafId
-        is Branch -> node.children.any { containsLeaf(it) }
+    val (baseId, offset) = parseSplitId(leafId)
+    fun containsPiece(node: Node): Boolean = when (node) {
+        is Leaf -> parseSplitId(node.id).let { (id, start) -> id == baseId && start <= offset }
+        is Branch -> node.children.any { containsPiece(it) }
     }
-    return indexOfFirst { page -> page.roots.any { containsLeaf(it) } }
+    return indexOfLast { page -> page.roots.any { containsPiece(it) } }
 }
 
 /**

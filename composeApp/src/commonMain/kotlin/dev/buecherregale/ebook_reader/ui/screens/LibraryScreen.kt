@@ -13,6 +13,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -51,11 +53,24 @@ fun LibraryDetailScreen(
     var showImportBookDialog by remember { mutableStateOf(false) }
     val navigator: Navigator = koinInject()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(Unit) {
         viewModel.loadBooks()
     }
 
+    LaunchedEffect(state.error) {
+        state.error?.let {
+            try {
+                snackbarHostState.showSnackbar(it)
+            } finally {
+                viewModel.clearError()
+            }
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(library.name) },

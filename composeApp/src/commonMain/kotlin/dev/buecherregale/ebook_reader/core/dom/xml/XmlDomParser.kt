@@ -86,16 +86,16 @@ object XmlDomParser {
      * The root element of the XML is treated as the document container; its tag
      * name is ignored. If the root is `<html>`, only `<body>` children are
      * processed (others are skipped silently).
+     *
+     * The `id` of `<body>` is kept as [Document.originalLinkAnchor], as links may target the body itself.
      */
     fun parse(
         reader: XmlReader,
         registry: TagHandlerRegistry = TagHandlerRegistry.default(),
         documentId: String = nextId(),
     ): Document {
-        val document = Document(
-            id = documentId,
-            version = CURRENT_DOM_VERSION
-        )
+        val children = mutableListOf<Node>()
+        var anchor: String? = null
         val context = ParseContext(registry, reader)
 
         reader.skipToFirstStartElement()
@@ -104,17 +104,24 @@ object XmlDomParser {
 
         if (rootTag == "html") {
             reader.parseChildren { tag ->
-                if (tag == "body") {
-                    reader.parseChildrenInto(document.children, context)
+                if (tag.lowercase() == "body") {
+                    anchor = reader.attributes()["id"]
+                    reader.parseChildrenInto(children, context)
                 } else {
                     reader.skipElement()
                 }
             }
         } else {
-            reader.parseChildrenInto(document.children, context)
+            anchor = reader.attributes()["id"]
+            reader.parseChildrenInto(children, context)
         }
 
-        return document
+        return Document(
+            id = documentId,
+            children = children,
+            originalLinkAnchor = anchor,
+            version = CURRENT_DOM_VERSION,
+        )
     }
 
     /**

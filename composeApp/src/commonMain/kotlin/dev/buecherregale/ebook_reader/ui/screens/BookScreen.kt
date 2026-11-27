@@ -173,7 +173,7 @@ fun PaginatedContent(
     val scope = rememberCoroutineScope()
 
     var viewAnchorLeafId by remember(dom) {
-        mutableStateOf(contentIndex.pathAtFraction(initialProgress).peek())
+        mutableStateOf(contentIndex.leafIdAtFraction(initialProgress) ?: contentIndex.pathAtFraction(initialProgress).peek())
     }
 
     var windowStart by remember(dom, pageWidthPx) {
@@ -185,6 +185,8 @@ fun PaginatedContent(
 
     val nodeHeights = remember(dom, pageWidthPx, config.baseTextSize) { mutableStateMapOf<String, Int>() }
     val branchHeights = remember(dom, pageWidthPx, config.baseTextSize) { mutableStateMapOf<String, Int>() }
+    // not a state map: only written during measurement, before the read in paginate
+    val inlineLayouts = remember(dom, pageWidthPx, config.baseTextSize) { mutableMapOf<String, InlineLayout>() }
 
     var needsRestore by remember(dom, pageWidthPx, config.baseTextSize) { mutableStateOf(true) }
     var pagesReady by remember(dom, pageWidthPx, config.baseTextSize) { mutableStateOf(false) }
@@ -211,7 +213,12 @@ fun PaginatedContent(
             dom.children[i].traverse { node ->
                 if (node.id !in nodeHeights) {
                     nodeHeights[node.id] = subcompose("measure_${node.id}") {
-                        DomNode(book = book, node = node, config = config)
+                        // only record the layout of the node itself, measured with the same width as its height
+                        CompositionLocalProvider(LocalInlineLayoutRecorder provides { ownerId, layout ->
+                            if (ownerId == node.id) inlineLayouts[ownerId] = InlineLayout.of(layout)
+                        }) {
+                            DomNode(book = book, node = node, config = config)
+                        }
                     }.firstOrNull()?.measure(measureConstraints)?.height ?: 0
 
                     if (node is Branch) {
@@ -229,7 +236,7 @@ fun PaginatedContent(
 
         val currentPages = (dom
             .cloneWithChildren(dom.children.subList(windowStart, windowEnd + 1).toMutableList()) as Document)
-            .paginate(nodeHeights, branchHeights, pageHeightPx)
+            .paginate(nodeHeights, branchHeights, pageHeightPx, inlineLayouts)
 
         val pagerPlaceable = subcompose("pager") {
             val latestPages by rememberUpdatedState(currentPages)
@@ -328,7 +335,7 @@ private fun ProvideDomUriHandler(
 }
 
 private fun Node.containsLeafId(leafId: String): Boolean = when (this) {
-    is Leaf -> id == leafId
+    is Leaf -> id == parseSplitId(leafId).first
     is Branch -> children.any { it.containsLeafId(leafId) }
 }
 

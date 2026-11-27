@@ -157,7 +157,8 @@ object EPubDomParser : BookParser {
                 id = document.id,
                 children = document.children,
                 originalZipPath = pathToChapter,
-                originalLinkAnchor = pathToChapter.substringAfterLast("/", pathToChapter)
+                // links may target the <body> by its id
+                originalLinkAnchor = document.originalLinkAnchor ?: pathToChapter.substringAfterLast("/", pathToChapter)
         )
     }
 
@@ -258,8 +259,12 @@ internal object LinkPostProcessor : PostProcessor {
      * @param document The document to traverse
      * @param source the chapter the link is contained in
      * @param link the link to find
+     * If the `originalLinkAnchor` cannot be found in the chapter (e.g. it is the id of an element not
+     * represented in the DOM), the path points to the chapter itself, as the closest known target.
+     *
      * @return the path to the link or `null` if the target is external or does not match the
      * requirement
+     * @throws EPubParseException if the `chapterFile` does not belong to any chapter
      */
     private fun findPathToLink(document: Document, source: Chapter, link: Link): ArrayDeque<String>? {
         if (externalLink.containsMatchIn(link.target)) return null
@@ -281,12 +286,11 @@ internal object LinkPostProcessor : PostProcessor {
 
         val path = ArrayDeque<String>()
         path.addFirst(document.id)
-        if (anchor == null) {
-            path.addLast(chapterNode.id)
-            return path
-        }
-        if (findLinkTarget(chapterNode, anchor, path)) return path
-        throw EPubParseException("no path for link target '${link.target}' found")
+        if (anchor != null && findLinkTarget(chapterNode, anchor, path)) return path
+        if (anchor != null)
+            Logger.w { "no element for link target '${link.target}' found, linking to start of chapter instead" }
+        path.addLast(chapterNode.id)
+        return path
     }
 
     private fun findLinkTarget(node: Node, target: String, path: ArrayDeque<String>): Boolean {

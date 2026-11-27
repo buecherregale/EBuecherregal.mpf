@@ -96,7 +96,13 @@ fun DomParagraph(
 
     Column(modifier = modifier) {
         if (inlineNodes.isNotEmpty()) {
-            InlineContentRenderer(book = book, nodes = inlineNodes, config = config, onTextSelected = onTextSelected)
+            InlineContentRenderer(
+                book = book,
+                nodes = inlineNodes,
+                config = config,
+                ownerId = paragraph.id,
+                onTextSelected = onTextSelected,
+            )
         }
         if (blockNodes.isEmpty())
             Box(modifier = Modifier.height(config.paragraphSpacing))
@@ -131,6 +137,7 @@ fun DomHeading(
             book = book,
             nodes = heading.children,
             config = headingConfig,
+            ownerId = heading.id,
             onTextSelected = onTextSelected
         )
     }
